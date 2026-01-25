@@ -1,0 +1,2049 @@
+basePath: /api/v1
+definitions:
+  github_com_alfafaa_alfafaa-blog_internal_dto.AdminUpdateUserRequest:
+    properties:
+      bio:
+        maxLength: 1000
+        type: string
+      first_name:
+        maxLength: 100
+        type: string
+      is_active:
+        type: boolean
+      is_verified:
+        type: boolean
+      last_name:
+        maxLength: 100
+        type: string
+      profile_image_url:
+        type: string
+      role:
+        enum:
+        - reader
+        - author
+        - editor
+        - admin
+        type: string
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.ArticleDetailResponse:
+    properties:
+      author:
+        $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.PublicUserResponse'
+      categories:
+        items:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CategoryResponse'
+        type: array
+      content:
+        type: string
+      created_at:
+        type: string
+      excerpt:
+        type: string
+      featured_image_url:
+        type: string
+      id:
+        type: string
+      meta_description:
+        type: string
+      meta_keywords:
+        type: string
+      meta_title:
+        type: string
+      published_at:
+        type: string
+      reading_time_minutes:
+        type: integer
+      slug:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.TagResponse'
+        type: array
+      title:
+        type: string
+      updated_at:
+        type: string
+      view_count:
+        type: integer
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.ArticleListItemResponse:
+    properties:
+      author:
+        $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.PublicUserResponse'
+      categories:
+        items:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CategoryResponse'
+        type: array
+      created_at:
+        type: string
+      excerpt:
+        type: string
+      featured_image_url:
+        type: string
+      id:
+        type: string
+      published_at:
+        type: string
+      reading_time_minutes:
+        type: integer
+      slug:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.TagResponse'
+        type: array
+      title:
+        type: string
+      view_count:
+        type: integer
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.ArticleListResponse:
+    properties:
+      author:
+        $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.PublicUserResponse'
+      categories:
+        items:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CategoryResponse'
+        type: array
+      created_at:
+        type: string
+      excerpt:
+        type: string
+      featured_image_url:
+        type: string
+      id:
+        type: string
+      published_at:
+        type: string
+      reading_time_minutes:
+        type: integer
+      slug:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.TagResponse'
+        type: array
+      title:
+        type: string
+      view_count:
+        type: integer
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      expires_at:
+        type: integer
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.UserResponse'
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.CategoryResponse:
+    properties:
+      article_count:
+        type: integer
+      created_at:
+        type: string
+      description:
+        type: string
+      display_order:
+        type: integer
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      parent_id:
+        type: string
+      slug:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.ChangePasswordRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        minLength: 8
+        type: string
+    required:
+    - current_password
+    - new_password
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.CreateArticleRequest:
+    properties:
+      category_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      content:
+        minLength: 50
+        type: string
+      excerpt:
+        maxLength: 500
+        type: string
+      featured_image_url:
+        type: string
+      meta_description:
+        maxLength: 160
+        type: string
+      meta_keywords:
+        maxLength: 255
+        type: string
+      meta_title:
+        maxLength: 70
+        type: string
+      status:
+        enum:
+        - draft
+        - published
+        type: string
+      tag_ids:
+        items:
+          type: string
+        type: array
+      title:
+        maxLength: 255
+        minLength: 5
+        type: string
+    required:
+    - category_ids
+    - content
+    - title
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.CreateCategoryRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      display_order:
+        minimum: 0
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      parent_id:
+        type: string
+    required:
+    - name
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.CreateTagRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+    required:
+    - name
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.MediaResponse:
+    properties:
+      alt_text:
+        type: string
+      created_at:
+        type: string
+      file_path:
+        type: string
+      file_size:
+        type: integer
+      file_size_formatted:
+        type: string
+      filename:
+        type: string
+      id:
+        type: string
+      is_featured:
+        type: boolean
+      mime_type:
+        type: string
+      original_filename:
+        type: string
+      uploaded_by:
+        type: string
+      uploader:
+        $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.PublicUserResponse'
+      url:
+        type: string
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.PublicUserResponse:
+    properties:
+      bio:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      profile_image_url:
+        type: string
+      username:
+        type: string
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.RegisterRequest:
+    properties:
+      email:
+        type: string
+      first_name:
+        maxLength: 100
+        type: string
+      last_name:
+        maxLength: 100
+        type: string
+      password:
+        minLength: 8
+        type: string
+      username:
+        maxLength: 30
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.SearchResponse:
+    properties:
+      articles:
+        items:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleListItemResponse'
+        type: array
+      categories:
+        items:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CategoryResponse'
+        type: array
+      tags:
+        items:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.TagResponse'
+        type: array
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.TagResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+      updated_at:
+        type: string
+      usage_count:
+        type: integer
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_at:
+        type: integer
+      refresh_token:
+        type: string
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.UpdateArticleRequest:
+    properties:
+      category_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      content:
+        minLength: 50
+        type: string
+      excerpt:
+        maxLength: 500
+        type: string
+      featured_image_url:
+        type: string
+      meta_description:
+        maxLength: 160
+        type: string
+      meta_keywords:
+        maxLength: 255
+        type: string
+      meta_title:
+        maxLength: 70
+        type: string
+      tag_ids:
+        items:
+          type: string
+        type: array
+      title:
+        maxLength: 255
+        minLength: 5
+        type: string
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.UpdateCategoryRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      display_order:
+        minimum: 0
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      parent_id:
+        type: string
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.UpdateTagRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.UpdateUserRequest:
+    properties:
+      bio:
+        maxLength: 1000
+        type: string
+      first_name:
+        maxLength: 100
+        type: string
+      last_name:
+        maxLength: 100
+        type: string
+      profile_image_url:
+        type: string
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_dto.UserResponse:
+    properties:
+      bio:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      is_verified:
+        type: boolean
+      last_login_at:
+        type: string
+      last_name:
+        type: string
+      profile_image_url:
+        type: string
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_utils.Meta:
+    properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_utils.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Meta'
+      success:
+        type: boolean
+    type: object
+  github_com_alfafaa_alfafaa-blog_internal_utils.ResponseWithMeta:
+    properties:
+      data: {}
+      message:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Meta'
+      success:
+        type: boolean
+    type: object
+host: localhost:8081
+info:
+  contact:
+    email: support@alfafaa.com
+    name: Alfafaa Support
+    url: https://alfafaa.com/support
+  description: Production-ready blog backend API for Alfafaa Community - a Muslim
+    community blogging platform.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Alfafaa Blog API
+  version: "1.0"
+paths:
+  /articles:
+    get:
+      description: Get a paginated list of published articles (editors can see all)
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Filter by category slug
+        in: query
+        name: category
+        type: string
+      - description: Filter by tag slug
+        in: query
+        name: tag
+        type: string
+      - description: Filter by author ID
+        in: query
+        name: author
+        type: string
+      - description: Search in title and content
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Articles retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.ResponseWithMeta'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleListResponse'
+                  type: array
+              type: object
+      summary: List articles
+      tags:
+      - articles
+    post:
+      consumes:
+      - application/json
+      description: Create a new article (requires author role or higher)
+      parameters:
+      - description: Article data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CreateArticleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Article created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleDetailResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires author role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create article
+      tags:
+      - articles
+  /articles/{id}:
+    delete:
+      description: Delete an article (authors can only delete their own, editors can
+        delete any)
+      parameters:
+      - description: Article ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Article deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - not the author
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Article not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete article
+      tags:
+      - articles
+    put:
+      consumes:
+      - application/json
+      description: Update an article (authors can only update their own, editors can
+        update any)
+      parameters:
+      - description: Article ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Article update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.UpdateArticleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Article updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleDetailResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - not the author
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Article not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update article
+      tags:
+      - articles
+  /articles/{id}/publish:
+    patch:
+      description: Publish an article (requires editor role)
+      parameters:
+      - description: Article ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Article published successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleDetailResponse'
+              type: object
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires editor role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Article not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Publish article
+      tags:
+      - articles
+  /articles/{id}/unpublish:
+    patch:
+      description: Unpublish an article (requires editor role)
+      parameters:
+      - description: Article ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Article unpublished successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleDetailResponse'
+              type: object
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires editor role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Article not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Unpublish article
+      tags:
+      - articles
+  /articles/{slug}:
+    get:
+      description: Get a single article by its slug (increments view count for non-authenticated
+        users)
+      parameters:
+      - description: Article slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Article retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleDetailResponse'
+              type: object
+        "400":
+          description: Invalid slug
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Article not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Get article by slug
+      tags:
+      - articles
+  /articles/{slug}/related:
+    get:
+      description: Get articles related to a specific article based on categories
+        and tags
+      parameters:
+      - description: Article slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: 5
+        description: Number of articles to return
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Related articles retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleListResponse'
+                  type: array
+              type: object
+        "400":
+          description: Invalid slug
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Article not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Get related articles
+      tags:
+      - articles
+  /articles/recent:
+    get:
+      description: Get the most recently published articles
+      parameters:
+      - default: 10
+        description: Number of articles to return
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Recent articles retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleListResponse'
+                  type: array
+              type: object
+      summary: Get recent articles
+      tags:
+      - articles
+  /articles/trending:
+    get:
+      description: Get articles sorted by view count
+      parameters:
+      - default: 10
+        description: Number of articles to return
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Trending articles retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleListResponse'
+                  type: array
+              type: object
+      summary: Get trending articles
+      tags:
+      - articles
+  /auth/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change the current user's password
+      parameters:
+      - description: Password change data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password changed successfully
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized or incorrect current password
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT tokens
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.AuthResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Login user
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Logout the current user (client should discard tokens)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Logout user
+      tags:
+      - auth
+  /auth/me:
+    get:
+      description: Get the currently authenticated user's profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.UserResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - auth
+  /auth/refresh-token:
+    post:
+      consumes:
+      - application/json
+      description: Get a new access token using refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token refreshed successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.TokenResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Invalid or expired refresh token
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Refresh access token
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account
+      parameters:
+      - description: Registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Registration successful
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.AuthResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "409":
+          description: Email or username already exists
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Register a new user
+      tags:
+      - auth
+  /categories:
+    get:
+      description: Get all categories (optionally in hierarchical structure)
+      parameters:
+      - default: false
+        description: Return categories in hierarchical structure
+        in: query
+        name: hierarchical
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Categories retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CategoryResponse'
+                  type: array
+              type: object
+      summary: List categories
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: Create a new category (requires editor role)
+      parameters:
+      - description: Category data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CreateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Category created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CategoryResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires editor role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "409":
+          description: Category already exists
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create category
+      tags:
+      - categories
+  /categories/{id}:
+    delete:
+      description: Delete a category (requires editor role)
+      parameters:
+      - description: Category ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires editor role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Category not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete category
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      description: Update a category (requires editor role)
+      parameters:
+      - description: Category ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Category update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.UpdateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CategoryResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires editor role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Category not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update category
+      tags:
+      - categories
+  /categories/{slug}:
+    get:
+      description: Get a single category by its slug
+      parameters:
+      - description: Category slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CategoryResponse'
+              type: object
+        "400":
+          description: Invalid slug
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Category not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Get category by slug
+      tags:
+      - categories
+  /categories/{slug}/articles:
+    get:
+      description: Get a paginated list of articles in a category
+      parameters:
+      - description: Category slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Articles retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.ResponseWithMeta'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleListResponse'
+                  type: array
+              type: object
+        "400":
+          description: Invalid slug
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Category not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Get category articles
+      tags:
+      - categories
+  /media:
+    get:
+      description: Get a paginated list of all media files (admin only)
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Media retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.ResponseWithMeta'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.MediaResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires admin role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List all media
+      tags:
+      - media
+  /media/{id}:
+    delete:
+      description: Delete a media file (owner or admin only)
+      parameters:
+      - description: Media ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Media deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - not the owner
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Media not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete media
+      tags:
+      - media
+    get:
+      description: Get a single media file info by its ID
+      parameters:
+      - description: Media ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Media retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.MediaResponse'
+              type: object
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Media not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Get media by ID
+      tags:
+      - media
+  /media/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a file (image only, requires authentication)
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Alt text for the image
+        in: formData
+        name: alt_text
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: File uploaded successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.MediaResponse'
+              type: object
+        "400":
+          description: No file provided or invalid file type
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "413":
+          description: File too large
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Upload media
+      tags:
+      - media
+  /search:
+    get:
+      description: Search across articles, categories, and tags
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: Filter by type (articles, categories, tags)
+        enum:
+        - articles
+        - categories
+        - tags
+        in: query
+        name: type
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Search completed successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.SearchResponse'
+              type: object
+        "400":
+          description: Search query is required
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Search
+      tags:
+      - search
+  /tags:
+    get:
+      description: Get a paginated list of all tags
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Search by tag name
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tags retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.ResponseWithMeta'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.TagResponse'
+                  type: array
+              type: object
+      summary: List tags
+      tags:
+      - tags
+    post:
+      consumes:
+      - application/json
+      description: Create a new tag (requires editor role)
+      parameters:
+      - description: Tag data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.CreateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Tag created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.TagResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires editor role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "409":
+          description: Tag already exists
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create tag
+      tags:
+      - tags
+  /tags/{id}:
+    delete:
+      description: Delete a tag (requires editor role)
+      parameters:
+      - description: Tag ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires editor role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Tag not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete tag
+      tags:
+      - tags
+    put:
+      consumes:
+      - application/json
+      description: Update a tag (requires editor role)
+      parameters:
+      - description: Tag ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Tag update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.UpdateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.TagResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires editor role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Tag not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update tag
+      tags:
+      - tags
+  /tags/{slug}:
+    get:
+      description: Get a single tag by its slug
+      parameters:
+      - description: Tag slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.TagResponse'
+              type: object
+        "400":
+          description: Invalid slug
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Tag not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Get tag by slug
+      tags:
+      - tags
+  /tags/{slug}/articles:
+    get:
+      description: Get a paginated list of articles with a specific tag
+      parameters:
+      - description: Tag slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Articles retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.ResponseWithMeta'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleListResponse'
+                  type: array
+              type: object
+        "400":
+          description: Invalid slug
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: Tag not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Get tag articles
+      tags:
+      - tags
+  /tags/popular:
+    get:
+      description: Get the most used tags sorted by usage count
+      parameters:
+      - default: 10
+        description: Number of tags to return
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Popular tags retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.TagResponse'
+                  type: array
+              type: object
+      summary: Get popular tags
+      tags:
+      - tags
+  /users:
+    get:
+      description: Get a paginated list of users (requires editor or admin role)
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Search by username or email
+        in: query
+        name: search
+        type: string
+      - description: Filter by role
+        in: query
+        name: role
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.ResponseWithMeta'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.UserResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires editor role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List users
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      description: Delete a user account (admin only)
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires admin role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete user
+      tags:
+      - users
+    get:
+      description: Get a user's public profile by their ID
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.PublicUserResponse'
+              type: object
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Get user by ID
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update a user's profile (users can only update their own profile
+        unless admin)
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.UserResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - can only update own profile
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update user
+      tags:
+      - users
+  /users/{id}/admin:
+    put:
+      consumes:
+      - application/json
+      description: Update any user's profile including role and status (admin only)
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Admin user update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.AdminUpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.UserResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "403":
+          description: Forbidden - requires admin role
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin update user
+      tags:
+      - users
+  /users/{id}/articles:
+    get:
+      description: Get a paginated list of published articles by a user
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Articles retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.ResponseWithMeta'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_dto.ArticleListResponse'
+                  type: array
+              type: object
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_alfafaa_alfafaa-blog_internal_utils.Response'
+      summary: Get user's articles
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

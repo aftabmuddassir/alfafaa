@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	_ "github.com/alfafaa/alfafaa-blog/docs"
 	"github.com/alfafaa/alfafaa-blog/internal/config"
 	"github.com/alfafaa/alfafaa-blog/internal/database"
 	"github.com/alfafaa/alfafaa-blog/internal/handlers"
@@ -14,7 +15,29 @@ import (
 	"github.com/alfafaa/alfafaa-blog/internal/services"
 	"github.com/alfafaa/alfafaa-blog/internal/utils"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// @title Alfafaa Blog API
+// @version 1.0
+// @description Production-ready blog backend API for Alfafaa Community - a Muslim community blogging platform.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name Alfafaa Support
+// @contact.url https://alfafaa.com/support
+// @contact.email support@alfafaa.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8081
+// @BasePath /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
 	// Parse command line flags
@@ -100,6 +123,9 @@ func main() {
 
 	// Serve uploaded files
 	router.Static("/uploads", cfg.Upload.Path)
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API v1 routes
 	v1 := router.Group("/api/v1")
