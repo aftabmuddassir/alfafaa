@@ -1,7 +1,9 @@
 package middlewares
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/alfafaa/alfafaa-blog/internal/models"
 	"github.com/alfafaa/alfafaa-blog/internal/utils"
@@ -27,7 +29,12 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 		}
 
 		if !allowed {
-			utils.ErrorResponseJSON(c, http.StatusForbidden, "FORBIDDEN", "Insufficient permissions", nil)
+			requiredRoles := roles[0]
+			if len(roles) > 1 {
+				requiredRoles = strings.Join(roles, " or ")
+			}
+			msg := fmt.Sprintf("Access denied. Required role: %s. Your role: %s", requiredRoles, userRole)
+			utils.ErrorResponseJSON(c, http.StatusForbidden, "FORBIDDEN", msg, nil)
 			c.Abort()
 			return
 		}
@@ -48,7 +55,8 @@ func RequireMinRole(minRole models.UserRole) gin.HandlerFunc {
 
 		userRole := models.UserRole(userRoleStr)
 		if !userRole.HasPermission(minRole) {
-			utils.ErrorResponseJSON(c, http.StatusForbidden, "FORBIDDEN", "Insufficient permissions", nil)
+			msg := fmt.Sprintf("Access denied. Required role: %s or higher. Your role: %s", minRole, userRoleStr)
+			utils.ErrorResponseJSON(c, http.StatusForbidden, "FORBIDDEN", msg, nil)
 			c.Abort()
 			return
 		}
