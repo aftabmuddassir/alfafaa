@@ -121,3 +121,40 @@ func RateLimitByIP(limit int, duration time.Duration) gin.HandlerFunc {
 	limiter := NewRateLimiter(limit, duration)
 	return RateLimitMiddleware(limiter)
 }
+
+// Pre-configured rate limiters for different endpoints
+
+// GeneralRateLimiter limits general API requests
+// 100 requests per minute per IP
+func GeneralRateLimiter() gin.HandlerFunc {
+	return RateLimitByIP(100, time.Minute)
+}
+
+// AuthRateLimiter limits authentication attempts
+// 5 attempts per 15 minutes per IP (prevent brute force)
+func AuthRateLimiter() gin.HandlerFunc {
+	return RateLimitByIP(5, 15*time.Minute)
+}
+
+// UploadRateLimiter limits file uploads
+// 10 uploads per hour per user (prevent abuse)
+func UploadRateLimiter() gin.HandlerFunc {
+	return RateLimitByIP(10, time.Hour)
+}
+
+// SearchRateLimiter limits search requests
+// 30 searches per minute per IP (prevent abuse)
+func SearchRateLimiter() gin.HandlerFunc {
+	return RateLimitByIP(30, time.Minute)
+}
+
+// StrictRateLimiter for sensitive operations
+// 3 requests per minute per IP
+func StrictRateLimiter() gin.HandlerFunc {
+	return RateLimitByIP(3, time.Minute)
+}
+
+// ConfigurableRateLimiter creates a rate limiter with custom settings
+func ConfigurableRateLimiter(limit int, duration time.Duration) gin.HandlerFunc {
+	return RateLimitByIP(limit, duration)
+}

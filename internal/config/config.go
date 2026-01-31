@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -11,12 +12,13 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	JWT      JWTConfig
-	Upload   UploadConfig
-	CORS     CORSConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	JWT       JWTConfig
+	Upload    UploadConfig
+	CORS      CORSConfig
 	RateLimit RateLimitConfig
+	Security  SecurityConfig
 }
 
 // ServerConfig holds server-related configuration
@@ -60,6 +62,14 @@ type RateLimitConfig struct {
 	Duration time.Duration
 }
 
+// SecurityConfig holds security-related configuration
+type SecurityConfig struct {
+	EnableRateLimit    bool
+	EnableSanitization bool
+	TrustedProxies     []string
+	LogPath            string
+}
+
 // LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
 	// Load .env file if it exists
@@ -97,6 +107,12 @@ func LoadConfig() (*Config, error) {
 			Requests: parseInt(getEnv("RATE_LIMIT_REQUESTS", "100")),
 			Duration: parseDuration(getEnv("RATE_LIMIT_DURATION", "1m")),
 		},
+		Security: SecurityConfig{
+			EnableRateLimit:    parseBool(getEnv("ENABLE_RATE_LIMIT", "true")),
+			EnableSanitization: parseBool(getEnv("ENABLE_SANITIZATION", "true")),
+			TrustedProxies:     parseSlice(getEnv("TRUSTED_PROXIES", "127.0.0.1")),
+			LogPath:            getEnv("LOG_PATH", ""),
+		},
 	}, nil
 }
 
@@ -133,6 +149,31 @@ func parseInt64(s string) int64 {
 		return 10485760
 	}
 	return i
+}
+
+// parseBool parses a boolean string with a fallback
+func parseBool(s string) bool {
+	b, err := strconv.ParseBool(s)
+	if err != nil {
+		return true
+	}
+	return b
+}
+
+// parseSlice parses a comma-separated string into a slice
+func parseSlice(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 // GetDSN returns the PostgreSQL connection string

@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -22,10 +23,22 @@ func DefaultCORSConfig() CORSConfig {
 	return CORSConfig{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
-		ExposedHeaders:   []string{"Content-Length", "Content-Type"},
+		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Request-ID"},
+		ExposedHeaders:   []string{"Content-Length", "Content-Type", "X-Request-ID"},
 		AllowCredentials: true,
 		MaxAge:           86400, // 24 hours
+	}
+}
+
+// ProductionCORSConfig returns a CORS configuration for production
+func ProductionCORSConfig(allowedOrigins []string) CORSConfig {
+	return CORSConfig{
+		AllowedOrigins:   allowedOrigins,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Request-ID"},
+		ExposedHeaders:   []string{"Content-Length", "Content-Type", "X-Request-ID"},
+		AllowCredentials: true,
+		MaxAge:           43200, // 12 hours
 	}
 }
 
@@ -53,12 +66,12 @@ func CORSMiddleware(config CORSConfig) gin.HandlerFunc {
 			c.Header("Access-Control-Allow-Headers", strings.Join(config.AllowedHeaders, ", "))
 			c.Header("Access-Control-Expose-Headers", strings.Join(config.ExposedHeaders, ", "))
 
-			if config.AllowCredentials {
+			if config.AllowCredentials && allowedOrigin != "*" {
 				c.Header("Access-Control-Allow-Credentials", "true")
 			}
 
 			if config.MaxAge > 0 {
-				c.Header("Access-Control-Max-Age", string(rune(config.MaxAge)))
+				c.Header("Access-Control-Max-Age", fmt.Sprintf("%d", config.MaxAge))
 			}
 		}
 
@@ -77,4 +90,23 @@ func CORSWithOrigins(origins []string) gin.HandlerFunc {
 	config := DefaultCORSConfig()
 	config.AllowedOrigins = origins
 	return CORSMiddleware(config)
+}
+
+// DevelopmentCORS creates a permissive CORS middleware for development
+// WARNING: Do not use in production!
+func DevelopmentCORS() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "*")
+		c.Header("Access-Control-Expose-Headers", "Content-Length, Content-Type, X-Request-ID")
+		c.Header("Access-Control-Max-Age", "86400")
+
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	}
 }

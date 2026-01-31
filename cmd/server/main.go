@@ -17,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.uber.org/zap"
 )
 
 // @title Alfafaa Blog API
@@ -50,6 +51,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	// Initialize structured logger
+	if err := utils.InitLogger(cfg.Server.Mode); err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer utils.Logger.Sync()
+
+	utils.Info("Starting Alfafaa Blog API", zap.String("mode", cfg.Server.Mode))
 
 	// Set Gin mode
 	gin.SetMode(cfg.Server.Mode)
@@ -112,14 +121,38 @@ func main() {
 	mediaHandler := handlers.NewMediaHandler(mediaService, cfg.Upload)
 	searchHandler := handlers.NewSearchHandler(searchService)
 
-	// Create Gin router
-	router := gin.Default()
+	// Create Gin router (use gin.New() to avoid default middleware)
+	router := gin.New()
 
-	// Apply global middlewares
-	router.Use(middlewares.CORSWithOrigins(cfg.CORS.AllowedOrigins))
+	// Set trusted proxies
+	if len(cfg.Security.TrustedProxies) > 0 {
+		router.SetTrustedProxies(cfg.Security.TrustedProxies)
+	}
 
-	// Create rate limiter for auth endpoints
-	authRateLimiter := middlewares.NewRateLimiter(cfg.RateLimit.Requests, cfg.RateLimit.Duration)
+	// Apply middleware chain in correct order:
+	// 1. Request ID - First to track all requests
+	router.Use(middlewares.RequestIDMiddleware())
+
+	// 2. Recovery - Catch panics early
+	router.Use(middlewares.RecoveryMiddleware())
+
+	// 3. Logger - Log all requests with context
+	router.Use(middlewares.LoggerMiddleware())
+
+	// 4. Security Headers - Add security headers to all responses
+	router.Use(middlewares.SecurityHeadersMiddleware())
+
+	// 5. CORS - Handle cross-origin requests
+	if cfg.Server.Mode == "release" || cfg.Server.Mode == "production" {
+		router.Use(middlewares.CORSMiddleware(middlewares.ProductionCORSConfig(cfg.CORS.AllowedOrigins)))
+	} else {
+		router.Use(middlewares.DevelopmentCORS())
+	}
+
+	// Apply general rate limiting if enabled
+	if cfg.Security.EnableRateLimit {
+		router.Use(middlewares.GeneralRateLimiter())
+	}
 
 	// Serve uploaded files
 	router.Static("/uploads", cfg.Upload.Path)
@@ -135,15 +168,15 @@ func main() {
 			c.JSON(200, gin.H{"status": "ok", "message": "Alfafaa Blog API is running"})
 		})
 
-		// Auth routes
+		// Auth routes (with strict rate limiting to prevent brute force)
 		auth := v1.Group("/auth")
 		{
-			auth.POST("/register", middlewares.RateLimitMiddleware(authRateLimiter), authHandler.Register)
-			auth.POST("/login", middlewares.RateLimitMiddleware(authRateLimiter), authHandler.Login)
+			auth.POST("/register", middlewares.AuthRateLimiter(), authHandler.Register)
+			auth.POST("/login", middlewares.AuthRateLimiter(), authHandler.Login)
 			auth.POST("/refresh-token", authHandler.RefreshToken)
 			auth.POST("/logout", authHandler.Logout)
 			auth.GET("/me", middlewares.AuthMiddleware(cfg.JWT.Secret), authHandler.GetMe)
-			auth.POST("/change-password", middlewares.AuthMiddleware(cfg.JWT.Secret), authHandler.ChangePassword)
+			auth.POST("/change-password", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.StrictRateLimiter(), authHandler.ChangePassword)
 		}
 
 		// User routes
@@ -198,30 +231,33 @@ func main() {
 			tags.DELETE("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), tagHandler.DeleteTag)
 		}
 
-		// Media routes
+		// Media routes (with upload rate limiting to prevent abuse)
 		media := v1.Group("/media")
 		{
-			media.POST("/upload", middlewares.AuthMiddleware(cfg.JWT.Secret), mediaHandler.UploadMedia)
+			media.POST("/upload", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.UploadRateLimiter(), mediaHandler.UploadMedia)
 			media.GET("/:id", mediaHandler.GetMedia)
 			media.GET("", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireAdmin(), mediaHandler.GetAllMedia)
 			media.DELETE("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), mediaHandler.DeleteMedia)
 		}
 
-		// Search route
-		v1.GET("/search", searchHandler.Search)
+		// Search route (with search rate limiting)
+		v1.GET("/search", middlewares.SearchRateLimiter(), searchHandler.Search)
 	}
 
 	// Ensure upload directory exists
 	if err := os.MkdirAll(cfg.Upload.Path, 0755); err != nil {
-		log.Printf("Warning: Failed to create upload directory: %v", err)
+		utils.Warn("Failed to create upload directory", zap.Error(err))
 	}
 
 	// Start server
 	addr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
-	log.Printf("Starting Alfafaa Blog API server on %s", addr)
-	log.Printf("API documentation: http://%s/api/v1/health", addr)
+	utils.Info("Server starting",
+		zap.String("address", addr),
+		zap.String("swagger", fmt.Sprintf("http://%s/swagger/index.html", addr)),
+		zap.String("health", fmt.Sprintf("http://%s/api/v1/health", addr)),
+	)
 
 	if err := router.Run(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		utils.Fatal("Failed to start server", zap.Error(err))
 	}
 }
