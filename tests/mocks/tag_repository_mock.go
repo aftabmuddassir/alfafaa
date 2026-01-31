@@ -5,6 +5,7 @@ import (
 	"github.com/alfafaa/alfafaa-blog/internal/repositories"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
 // MockTagRepository is a mock implementation of TagRepository
@@ -91,4 +92,10 @@ func (m *MockTagRepository) DecrementUsage(id uuid.UUID) error {
 func (m *MockTagRepository) FindByIDs(ids []uuid.UUID) ([]models.Tag, error) {
 	args := m.Called(ids)
 	return args.Get(0).([]models.Tag), args.Error(1)
+}
+
+// WithTx mocks the WithTx method - returns itself for testing
+func (m *MockTagRepository) WithTx(tx *gorm.DB) repositories.TagRepository {
+	m.Called(tx)
+	return m // Return self to allow chaining in tests
 }

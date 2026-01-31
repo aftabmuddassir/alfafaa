@@ -20,6 +20,8 @@ type TagRepository interface {
 	IncrementUsage(id uuid.UUID) error
 	DecrementUsage(id uuid.UUID) error
 	FindByIDs(ids []uuid.UUID) ([]models.Tag, error)
+	// WithTx returns a new repository instance using the provided transaction
+	WithTx(tx *gorm.DB) TagRepository
 }
 
 // TagFilters contains filter options for querying tags
@@ -36,6 +38,11 @@ type tagRepository struct {
 // NewTagRepository creates a new tag repository
 func NewTagRepository(db *gorm.DB) TagRepository {
 	return &tagRepository{db: db}
+}
+
+// WithTx returns a new repository instance using the provided transaction
+func (r *tagRepository) WithTx(tx *gorm.DB) TagRepository {
+	return &tagRepository{db: tx}
 }
 
 // Create creates a new tag

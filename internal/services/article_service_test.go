@@ -27,7 +27,9 @@ func (suite *ArticleServiceTestSuite) SetupTest() {
 	suite.articleRepo = new(mocks.MockArticleRepository)
 	suite.categoryRepo = new(mocks.MockCategoryRepository)
 	suite.tagRepo = new(mocks.MockTagRepository)
-	suite.service = NewArticleService(suite.articleRepo, suite.categoryRepo, suite.tagRepo)
+	// Pass nil for db in unit tests - service handles nil db gracefully
+	// Transaction behavior is tested in integration tests
+	suite.service = NewArticleService(nil, suite.articleRepo, suite.categoryRepo, suite.tagRepo)
 }
 
 func TestArticleServiceTestSuite(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"github.com/alfafaa/alfafaa-blog/internal/repositories"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
 // MockCategoryRepository is a mock implementation of CategoryRepository
@@ -85,4 +86,10 @@ func (m *MockCategoryRepository) GetArticleCount(id uuid.UUID) (int64, error) {
 func (m *MockCategoryRepository) FindByIDs(ids []uuid.UUID) ([]models.Category, error) {
 	args := m.Called(ids)
 	return args.Get(0).([]models.Category), args.Error(1)
+}
+
+// WithTx mocks the WithTx method - returns itself for testing
+func (m *MockCategoryRepository) WithTx(tx *gorm.DB) repositories.CategoryRepository {
+	m.Called(tx)
+	return m // Return self to allow chaining in tests
 }

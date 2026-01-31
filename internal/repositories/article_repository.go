@@ -27,6 +27,8 @@ type ArticleRepository interface {
 	UpdateCategories(article *models.Article, categories []models.Category) error
 	UpdateTags(article *models.Article, tags []models.Tag) error
 	Search(query string, filters ArticleFilters) ([]models.Article, int64, error)
+	// WithTx returns a new repository instance using the provided transaction
+	WithTx(tx *gorm.DB) ArticleRepository
 }
 
 // ArticleFilters contains filter options for querying articles
@@ -47,6 +49,11 @@ type articleRepository struct {
 // NewArticleRepository creates a new article repository
 func NewArticleRepository(db *gorm.DB) ArticleRepository {
 	return &articleRepository{db: db}
+}
+
+// WithTx returns a new repository instance using the provided transaction
+func (r *articleRepository) WithTx(tx *gorm.DB) ArticleRepository {
+	return &articleRepository{db: tx}
 }
 
 // Create creates a new article

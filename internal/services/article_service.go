@@ -29,6 +29,7 @@ type ArticleService interface {
 }
 
 type articleService struct {
+	db           *gorm.DB
 	articleRepo  repositories.ArticleRepository
 	categoryRepo repositories.CategoryRepository
 	tagRepo      repositories.TagRepository
@@ -36,11 +37,13 @@ type articleService struct {
 
 // NewArticleService creates a new article service
 func NewArticleService(
+	db *gorm.DB,
 	articleRepo repositories.ArticleRepository,
 	categoryRepo repositories.CategoryRepository,
 	tagRepo repositories.TagRepository,
 ) ArticleService {
 	return &articleService{
+		db:           db,
 		articleRepo:  articleRepo,
 		categoryRepo: categoryRepo,
 		tagRepo:      tagRepo,
@@ -142,13 +145,40 @@ func (s *articleService) CreateArticle(req *dto.CreateArticleRequest, authorID s
 		article.PublishedAt = &now
 	}
 
-	if err := s.articleRepo.Create(article); err != nil {
-		return nil, utils.WrapError(err, "failed to create article")
+	// Use transaction to ensure atomicity of article creation and tag updates
+	if s.db != nil {
+		err = s.db.Transaction(func(tx *gorm.DB) error {
+			// Create repositories scoped to this transaction
+			txArticleRepo := s.articleRepo.WithTx(tx)
+			txTagRepo := s.tagRepo.WithTx(tx)
+
+			if err := txArticleRepo.Create(article); err != nil {
+				return err
+			}
+
+			// Update tag usage counts within the same transaction
+			for _, tag := range tags {
+				if err := txTagRepo.IncrementUsage(tag.ID); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		})
+	} else {
+		// Fallback for unit tests without db - run without transaction
+		if err := s.articleRepo.Create(article); err != nil {
+			return nil, utils.WrapError(err, "failed to create article")
+		}
+		for _, tag := range tags {
+			if err := s.tagRepo.IncrementUsage(tag.ID); err != nil {
+				return nil, utils.WrapError(err, "failed to increment tag usage")
+			}
+		}
 	}
 
-	// Update tag usage counts
-	for _, tag := range tags {
-		_ = s.tagRepo.IncrementUsage(tag.ID)
+	if err != nil {
+		return nil, utils.WrapError(err, "failed to create article")
 	}
 
 	// Fetch the created article with relationships
@@ -329,14 +359,9 @@ func (s *articleService) UpdateArticle(id string, req *dto.UpdateArticleRequest,
 		}
 	}
 
-	// Update tags
+	// Update tags within a transaction
 	if req.TagIDs != nil {
-		// Decrement old tag usage
-		for _, tag := range article.Tags {
-			_ = s.tagRepo.DecrementUsage(tag.ID)
-		}
-
-		var tags []models.Tag
+		var newTags []models.Tag
 		if len(req.TagIDs) > 0 {
 			tagIDs := make([]uuid.UUID, len(req.TagIDs))
 			for i, id := range req.TagIDs {
@@ -347,19 +372,60 @@ func (s *articleService) UpdateArticle(id string, req *dto.UpdateArticleRequest,
 				tagIDs[i] = tagID
 			}
 
-			tags, err = s.tagRepo.FindByIDs(tagIDs)
+			newTags, err = s.tagRepo.FindByIDs(tagIDs)
 			if err != nil {
 				return nil, utils.WrapError(err, "failed to find tags")
 			}
 		}
 
-		if err := s.articleRepo.UpdateTags(article, tags); err != nil {
-			return nil, utils.WrapError(err, "failed to update tags")
+		oldTags := article.Tags
+
+		// Use transaction for tag updates
+		if s.db != nil {
+			err = s.db.Transaction(func(tx *gorm.DB) error {
+				txArticleRepo := s.articleRepo.WithTx(tx)
+				txTagRepo := s.tagRepo.WithTx(tx)
+
+				// Decrement old tag usage
+				for _, tag := range oldTags {
+					if err := txTagRepo.DecrementUsage(tag.ID); err != nil {
+						return err
+					}
+				}
+
+				// Update article tags
+				if err := txArticleRepo.UpdateTags(article, newTags); err != nil {
+					return err
+				}
+
+				// Increment new tag usage
+				for _, tag := range newTags {
+					if err := txTagRepo.IncrementUsage(tag.ID); err != nil {
+						return err
+					}
+				}
+
+				return nil
+			})
+		} else {
+			// Fallback for unit tests without db - run without transaction
+			for _, tag := range oldTags {
+				if err := s.tagRepo.DecrementUsage(tag.ID); err != nil {
+					return nil, utils.WrapError(err, "failed to decrement tag usage")
+				}
+			}
+			if err := s.articleRepo.UpdateTags(article, newTags); err != nil {
+				return nil, utils.WrapError(err, "failed to update tags")
+			}
+			for _, tag := range newTags {
+				if err := s.tagRepo.IncrementUsage(tag.ID); err != nil {
+					return nil, utils.WrapError(err, "failed to increment tag usage")
+				}
+			}
 		}
 
-		// Increment new tag usage
-		for _, tag := range tags {
-			_ = s.tagRepo.IncrementUsage(tag.ID)
+		if err != nil {
+			return nil, utils.WrapError(err, "failed to update tags")
 		}
 	}
 
@@ -396,12 +462,38 @@ func (s *articleService) DeleteArticle(id string, userID string, isEditor bool) 
 		return utils.ErrForbidden
 	}
 
-	// Decrement tag usage
-	for _, tag := range article.Tags {
-		_ = s.tagRepo.DecrementUsage(tag.ID)
+	// Use transaction for deletion and tag updates
+	if s.db != nil {
+		err = s.db.Transaction(func(tx *gorm.DB) error {
+			txArticleRepo := s.articleRepo.WithTx(tx)
+			txTagRepo := s.tagRepo.WithTx(tx)
+
+			// Decrement tag usage
+			for _, tag := range article.Tags {
+				if err := txTagRepo.DecrementUsage(tag.ID); err != nil {
+					return err
+				}
+			}
+
+			if err := txArticleRepo.Delete(articleID); err != nil {
+				return err
+			}
+
+			return nil
+		})
+	} else {
+		// Fallback for unit tests without db - run without transaction
+		for _, tag := range article.Tags {
+			if err := s.tagRepo.DecrementUsage(tag.ID); err != nil {
+				return utils.WrapError(err, "failed to decrement tag usage")
+			}
+		}
+		if err := s.articleRepo.Delete(articleID); err != nil {
+			return utils.WrapError(err, "failed to delete article")
+		}
 	}
 
-	if err := s.articleRepo.Delete(articleID); err != nil {
+	if err != nil {
 		return utils.WrapError(err, "failed to delete article")
 	}
 

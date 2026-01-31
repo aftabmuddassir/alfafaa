@@ -19,6 +19,8 @@ type CategoryRepository interface {
 	ExistsBySlug(slug string) (bool, error)
 	GetArticleCount(id uuid.UUID) (int64, error)
 	FindByIDs(ids []uuid.UUID) ([]models.Category, error)
+	// WithTx returns a new repository instance using the provided transaction
+	WithTx(tx *gorm.DB) CategoryRepository
 }
 
 // CategoryFilters contains filter options for querying categories
@@ -35,6 +37,11 @@ type categoryRepository struct {
 // NewCategoryRepository creates a new category repository
 func NewCategoryRepository(db *gorm.DB) CategoryRepository {
 	return &categoryRepository{db: db}
+}
+
+// WithTx returns a new repository instance using the provided transaction
+func (r *categoryRepository) WithTx(tx *gorm.DB) CategoryRepository {
+	return &categoryRepository{db: tx}
 }
 
 // Create creates a new category

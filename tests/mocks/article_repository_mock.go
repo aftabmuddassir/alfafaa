@@ -5,6 +5,7 @@ import (
 	"github.com/alfafaa/alfafaa-blog/internal/repositories"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
 // MockArticleRepository is a mock implementation of ArticleRepository
@@ -121,4 +122,10 @@ func (m *MockArticleRepository) UpdateTags(article *models.Article, tags []model
 func (m *MockArticleRepository) Search(query string, filters repositories.ArticleFilters) ([]models.Article, int64, error) {
 	args := m.Called(query, filters)
 	return args.Get(0).([]models.Article), args.Get(1).(int64), args.Error(2)
+}
+
+// WithTx mocks the WithTx method - returns itself for testing
+func (m *MockArticleRepository) WithTx(tx *gorm.DB) repositories.ArticleRepository {
+	m.Called(tx)
+	return m // Return self to allow chaining in tests
 }

@@ -21,7 +21,7 @@ import (
 
 // @title Alfafaa Blog API
 // @version 1.0
-// @description Production-ready blog backend API for Alfafaa Community - a Muslim community blogging platform.
+// @description Production-ready blog backend API for Alfafaa Community - a community blogging platform.
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name Alfafaa Support
@@ -70,10 +70,10 @@ func main() {
 		return
 	}
 
-	// Run migrations automatically on startup
-	if err := database.AutoMigrate(db); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
+	// // Run migrations automatically on startup
+	// if err := database.AutoMigrate(db); err != nil {
+	// 	log.Fatalf("Failed to run migrations: %v", err)
+	// }
 
 	// Seed database if flag is set
 	if *seedFlag {
@@ -99,7 +99,7 @@ func main() {
 	userService := services.NewUserService(userRepo, articleRepo)
 	categoryService := services.NewCategoryService(categoryRepo, articleRepo)
 	tagService := services.NewTagService(tagRepo, articleRepo)
-	articleService := services.NewArticleService(articleRepo, categoryRepo, tagRepo)
+	articleService := services.NewArticleService(db, articleRepo, categoryRepo, tagRepo)
 	mediaService := services.NewMediaService(mediaRepo, cfg.Upload)
 	searchService := services.NewSearchService(articleRepo, categoryRepo, tagRepo)
 
