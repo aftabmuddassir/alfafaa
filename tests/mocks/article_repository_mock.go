@@ -129,3 +129,21 @@ func (m *MockArticleRepository) WithTx(tx *gorm.DB) repositories.ArticleReposito
 	m.Called(tx)
 	return m // Return self to allow chaining in tests
 }
+
+// FindForUser mocks the FindForUser method
+func (m *MockArticleRepository) FindForUser(userID uuid.UUID, followingIDs, interestCategoryIDs []uuid.UUID, filters repositories.ArticleFilters) ([]models.Article, int64, error) {
+	args := m.Called(userID, followingIDs, interestCategoryIDs, filters)
+	return args.Get(0).([]models.Article), args.Get(1).(int64), args.Error(2)
+}
+
+// FindStaffPicks mocks the FindStaffPicks method
+func (m *MockArticleRepository) FindStaffPicks(filters repositories.ArticleFilters) ([]models.Article, int64, error) {
+	args := m.Called(filters)
+	return args.Get(0).([]models.Article), args.Get(1).(int64), args.Error(2)
+}
+
+// SetStaffPick mocks the SetStaffPick method
+func (m *MockArticleRepository) SetStaffPick(id uuid.UUID, isStaffPick bool) error {
+	args := m.Called(id, isStaffPick)
+	return args.Error(0)
+}

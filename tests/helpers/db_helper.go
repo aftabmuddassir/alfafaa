@@ -37,7 +37,7 @@ func createTables(db *gorm.DB) error {
 			id TEXT PRIMARY KEY,
 			username TEXT UNIQUE NOT NULL,
 			email TEXT UNIQUE NOT NULL,
-			password_hash TEXT NOT NULL,
+			password_hash TEXT,
 			first_name TEXT,
 			last_name TEXT,
 			bio TEXT,
@@ -46,6 +46,8 @@ func createTables(db *gorm.DB) error {
 			is_verified INTEGER DEFAULT 0,
 			is_active INTEGER DEFAULT 1,
 			last_login_at DATETIME,
+			google_id TEXT UNIQUE,
+			auth_provider TEXT DEFAULT 'local',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			deleted_at DATETIME
@@ -102,6 +104,7 @@ func createTables(db *gorm.DB) error {
 			status TEXT DEFAULT 'draft',
 			view_count INTEGER DEFAULT 0,
 			reading_time_minutes INTEGER DEFAULT 1,
+			is_staff_pick INTEGER DEFAULT 0,
 			meta_title TEXT,
 			meta_description TEXT,
 			meta_keywords TEXT,
@@ -181,6 +184,34 @@ func createTables(db *gorm.DB) error {
 		return err
 	}
 
+	// User follows table (social graph)
+	if err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS user_follows (
+			follower_id TEXT NOT NULL,
+			following_id TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (follower_id, following_id),
+			FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+			FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
+		)
+	`).Error; err != nil {
+		return err
+	}
+
+	// User interests table (user to category relationship)
+	if err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS user_interests (
+			user_id TEXT NOT NULL,
+			category_id TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (user_id, category_id),
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+			FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+		)
+	`).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -190,6 +221,8 @@ func CleanupTestDB(db *gorm.DB) {
 	db.Exec("PRAGMA foreign_keys = OFF")
 
 	tables := []string{
+		"user_follows",
+		"user_interests",
 		"article_categories",
 		"article_tags",
 		"comments",

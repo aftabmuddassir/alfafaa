@@ -58,6 +58,14 @@ func (m *MockAuthService) ChangePassword(userID string, req *dto.ChangePasswordR
 	return args.Error(0)
 }
 
+func (m *MockAuthService) GoogleAuth(req *dto.GoogleAuthRequest) (*dto.AuthResponse, error) {
+	args := m.Called(req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.AuthResponse), args.Error(1)
+}
+
 type AuthHandlerTestSuite struct {
 	suite.Suite
 	router      *gin.Engine

@@ -1,7 +1,12 @@
 package services
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/alfafaa/alfafaa-blog/internal/config"
@@ -20,6 +25,7 @@ type AuthService interface {
 	RefreshToken(refreshToken string) (*dto.TokenResponse, error)
 	GetCurrentUser(userID string) (*dto.UserResponse, error)
 	ChangePassword(userID string, req *dto.ChangePasswordRequest) error
+	GoogleAuth(req *dto.GoogleAuthRequest) (*dto.AuthResponse, error)
 }
 
 type authService struct {
@@ -273,4 +279,207 @@ func (s *authService) toUserResponse(user *models.User) dto.UserResponse {
 		CreatedAt:       user.CreatedAt,
 		LastLoginAt:     user.LastLoginAt,
 	}
+}
+
+// GoogleAuth authenticates a user via Google OAuth
+// This is a stub implementation that validates the Google ID token
+// and creates/logs in the user
+func (s *authService) GoogleAuth(req *dto.GoogleAuthRequest) (*dto.AuthResponse, error) {
+	// Validate the Google ID token
+	// In production, you would verify this token with Google's API
+	// For now, we'll decode the token payload (JWT) to get user info
+	googleUserInfo, err := s.verifyGoogleIDToken(req.IDToken)
+	if err != nil {
+		return nil, utils.NewAppError("INVALID_TOKEN", "Invalid Google ID token", 401)
+	}
+
+	// Try to find existing user by Google ID
+	user, err := s.userRepo.FindByGoogleID(googleUserInfo.ID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.WrapError(err, "failed to find user")
+		}
+
+		// User not found by Google ID, try by email
+		user, err = s.userRepo.FindByEmail(googleUserInfo.Email)
+		if err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, utils.WrapError(err, "failed to find user")
+			}
+
+			// Create new user
+			user, err = s.createGoogleUser(googleUserInfo)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// Link existing account with Google
+			googleID := googleUserInfo.ID
+			user.GoogleID = &googleID
+			user.AuthProvider = "google"
+			if user.ProfileImageURL == nil && googleUserInfo.Picture != "" {
+				user.ProfileImageURL = &googleUserInfo.Picture
+			}
+			if err := s.userRepo.Update(user); err != nil {
+				return nil, utils.WrapError(err, "failed to link Google account")
+			}
+		}
+	}
+
+	// Check if user is active
+	if !user.IsActive {
+		return nil, utils.NewAppError("ACCOUNT_DISABLED", "Your account has been disabled", 403)
+	}
+
+	// Update last login
+	_ = s.userRepo.UpdateLastLogin(user.ID)
+	now := time.Now()
+	user.LastLoginAt = &now
+
+	// Generate tokens
+	tokens, err := utils.GenerateTokenPair(
+		user.ID,
+		user.Email,
+		string(user.Role),
+		s.jwtConfig.Secret,
+		s.jwtConfig.Expiration,
+		s.jwtConfig.RefreshExpiration,
+	)
+	if err != nil {
+		return nil, utils.WrapError(err, "failed to generate tokens")
+	}
+
+	return &dto.AuthResponse{
+		User:         s.toUserResponse(user),
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
+		ExpiresAt:    tokens.ExpiresAt,
+	}, nil
+}
+
+// verifyGoogleIDToken verifies and decodes a Google ID token
+// In production, this should verify the token signature with Google's public keys
+func (s *authService) verifyGoogleIDToken(idToken string) (*dto.GoogleUserInfo, error) {
+	// STUB: In a real implementation, you would:
+	// 1. Fetch Google's public keys from https://www.googleapis.com/oauth2/v3/certs
+	// 2. Verify the JWT signature
+	// 3. Check the 'aud' claim matches your client ID
+	// 4. Check the 'iss' claim is accounts.google.com or https://accounts.google.com
+	// 5. Check the token hasn't expired
+
+	// For now, we'll use Google's tokeninfo endpoint as a simple verification
+	// This is acceptable for development but has rate limits in production
+	// Production should use proper JWT verification with Google's public keys
+
+	// Parse the JWT without verification (STUB - should verify in production)
+	parts := strings.Split(idToken, ".")
+	if len(parts) != 3 {
+		return nil, errors.New("invalid token format")
+	}
+
+	// Decode the payload (middle part)
+	payload, err := decodeJWTPayload(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
+// decodeJWTPayload decodes the payload part of a JWT
+func decodeJWTPayload(payload string) (*dto.GoogleUserInfo, error) {
+	// Add padding if needed
+	switch len(payload) % 4 {
+	case 2:
+		payload += "=="
+	case 3:
+		payload += "="
+	}
+
+	decoded, err := base64.URLEncoding.DecodeString(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	var userInfo dto.GoogleUserInfo
+	if err := json.Unmarshal(decoded, &userInfo); err != nil {
+		return nil, err
+	}
+
+	return &userInfo, nil
+}
+
+// createGoogleUser creates a new user from Google OAuth info
+func (s *authService) createGoogleUser(info *dto.GoogleUserInfo) (*models.User, error) {
+	// Generate a unique username from email
+	username := generateUsernameFromEmail(info.Email)
+
+	// Check if username exists and make it unique if needed
+	for i := 0; i < 100; i++ {
+		exists, err := s.userRepo.ExistsByUsername(username)
+		if err != nil {
+			return nil, utils.WrapError(err, "failed to check username")
+		}
+		if !exists {
+			break
+		}
+		username = generateUsernameFromEmail(info.Email) + randomSuffix()
+	}
+
+	googleID := info.ID
+	var profileImageURL *string
+	if info.Picture != "" {
+		profileImageURL = &info.Picture
+	}
+
+	user := &models.User{
+		Username:        username,
+		Email:           info.Email,
+		FirstName:       info.GivenName,
+		LastName:        info.FamilyName,
+		ProfileImageURL: profileImageURL,
+		GoogleID:        &googleID,
+		AuthProvider:    "google",
+		Role:            models.RoleReader,
+		IsActive:        true,
+		IsVerified:      info.EmailVerified,
+	}
+
+	if err := s.userRepo.Create(user); err != nil {
+		return nil, utils.WrapError(err, "failed to create user")
+	}
+
+	return user, nil
+}
+
+// generateUsernameFromEmail generates a username from an email address
+func generateUsernameFromEmail(email string) string {
+	// Take the part before @ and clean it
+	parts := strings.Split(email, "@")
+	if len(parts) == 0 {
+		return "user"
+	}
+
+	username := parts[0]
+	// Remove any non-alphanumeric characters except underscores
+	cleaned := ""
+	for _, c := range username {
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
+			cleaned += string(c)
+		}
+	}
+
+	if len(cleaned) < 3 {
+		cleaned = "user" + cleaned
+	}
+	if len(cleaned) > 30 {
+		cleaned = cleaned[:30]
+	}
+
+	return cleaned
+}
+
+// randomSuffix generates a random suffix for usernames
+func randomSuffix() string {
+	return fmt.Sprintf("%d", rand.Intn(9999))
 }

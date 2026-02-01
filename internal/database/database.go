@@ -59,6 +59,9 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Article{},
 		&models.Media{},
 		&models.Comment{},
+		// Social graph join tables
+		&models.UserFollow{},
+		&models.UserInterest{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)

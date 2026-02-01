@@ -42,7 +42,7 @@ type User struct {
 	ID              uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	Username        string         `gorm:"type:varchar(30);uniqueIndex;not null" json:"username"`
 	Email           string         `gorm:"type:varchar(255);uniqueIndex;not null" json:"email"`
-	PasswordHash    string         `gorm:"type:varchar(255);not null" json:"-"`
+	PasswordHash    string         `gorm:"type:varchar(255)" json:"-"` // Optional for OAuth users
 	FirstName       string         `gorm:"type:varchar(100)" json:"first_name"`
 	LastName        string         `gorm:"type:varchar(100)" json:"last_name"`
 	Bio             string         `gorm:"type:text" json:"bio"`
@@ -55,10 +55,21 @@ type User struct {
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
 
+	// OAuth fields
+	GoogleID     *string `gorm:"type:varchar(255);uniqueIndex" json:"-"`
+	AuthProvider string  `gorm:"type:varchar(20);default:'local'" json:"auth_provider"` // local, google, etc.
+
 	// Relationships
 	Articles []Article `gorm:"foreignKey:AuthorID" json:"articles,omitempty"`
 	Comments []Comment `gorm:"foreignKey:UserID" json:"comments,omitempty"`
 	Media    []Media   `gorm:"foreignKey:UploadedBy" json:"media,omitempty"`
+
+	// Social Graph - Interests (Categories the user wants to follow)
+	Interests []Category `gorm:"many2many:user_interests;" json:"interests,omitempty"`
+
+	// Social Graph - Followers/Following (User to User)
+	Followers []*User `gorm:"many2many:user_follows;joinForeignKey:FollowingID;joinReferences:FollowerID" json:"followers,omitempty"`
+	Following []*User `gorm:"many2many:user_follows;joinForeignKey:FollowerID;joinReferences:FollowingID" json:"following,omitempty"`
 }
 
 // TableName returns the table name for the User model
@@ -134,4 +145,68 @@ func (u *User) CanManageUsers() bool {
 // CanViewAllUsers checks if the user can view the user list
 func (u *User) CanViewAllUsers() bool {
 	return u.Role.HasPermission(RoleEditor) && u.IsActive
+}
+
+// IsOAuthUser checks if the user signed up via OAuth
+func (u *User) IsOAuthUser() bool {
+	return u.AuthProvider != "local" && u.AuthProvider != ""
+}
+
+// GetInterestIDs returns a slice of interest (category) IDs
+func (u *User) GetInterestIDs() []uuid.UUID {
+	ids := make([]uuid.UUID, len(u.Interests))
+	for i, cat := range u.Interests {
+		ids[i] = cat.ID
+	}
+	return ids
+}
+
+// GetFollowerIDs returns a slice of follower user IDs
+func (u *User) GetFollowerIDs() []uuid.UUID {
+	ids := make([]uuid.UUID, len(u.Followers))
+	for i, user := range u.Followers {
+		ids[i] = user.ID
+	}
+	return ids
+}
+
+// GetFollowingIDs returns a slice of following user IDs
+func (u *User) GetFollowingIDs() []uuid.UUID {
+	ids := make([]uuid.UUID, len(u.Following))
+	for i, user := range u.Following {
+		ids[i] = user.ID
+	}
+	return ids
+}
+
+// UserFollow represents the follow relationship between users
+// This is a custom join table for tracking follow timestamps
+type UserFollow struct {
+	FollowerID  uuid.UUID `gorm:"type:uuid;primaryKey" json:"follower_id"`
+	FollowingID uuid.UUID `gorm:"type:uuid;primaryKey" json:"following_id"`
+	CreatedAt   time.Time `json:"created_at"`
+
+	Follower  *User `gorm:"foreignKey:FollowerID" json:"follower,omitempty"`
+	Following *User `gorm:"foreignKey:FollowingID" json:"following,omitempty"`
+}
+
+// TableName returns the table name for the UserFollow model
+func (UserFollow) TableName() string {
+	return "user_follows"
+}
+
+// UserInterest represents the interest relationship between users and categories
+// This is a custom join table for tracking when a user added an interest
+type UserInterest struct {
+	UserID     uuid.UUID `gorm:"type:uuid;primaryKey" json:"user_id"`
+	CategoryID uuid.UUID `gorm:"type:uuid;primaryKey" json:"category_id"`
+	CreatedAt  time.Time `json:"created_at"`
+
+	User     *User     `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Category *Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+}
+
+// TableName returns the table name for the UserInterest model
+func (UserInterest) TableName() string {
+	return "user_interests"
 }

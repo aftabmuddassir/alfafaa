@@ -83,3 +83,75 @@ func (m *MockUserRepository) UpdateLastLogin(id uuid.UUID) error {
 	args := m.Called(id)
 	return args.Error(0)
 }
+
+// FindByIDWithRelations mocks the FindByIDWithRelations method
+func (m *MockUserRepository) FindByIDWithRelations(id uuid.UUID) (*models.User, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.User), args.Error(1)
+}
+
+// FindByGoogleID mocks the FindByGoogleID method
+func (m *MockUserRepository) FindByGoogleID(googleID string) (*models.User, error) {
+	args := m.Called(googleID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.User), args.Error(1)
+}
+
+// FollowUser mocks the FollowUser method
+func (m *MockUserRepository) FollowUser(followerID, followingID uuid.UUID) error {
+	args := m.Called(followerID, followingID)
+	return args.Error(0)
+}
+
+// UnfollowUser mocks the UnfollowUser method
+func (m *MockUserRepository) UnfollowUser(followerID, followingID uuid.UUID) error {
+	args := m.Called(followerID, followingID)
+	return args.Error(0)
+}
+
+// IsFollowing mocks the IsFollowing method
+func (m *MockUserRepository) IsFollowing(followerID, followingID uuid.UUID) (bool, error) {
+	args := m.Called(followerID, followingID)
+	return args.Bool(0), args.Error(1)
+}
+
+// GetFollowers mocks the GetFollowers method
+func (m *MockUserRepository) GetFollowers(userID uuid.UUID, limit, offset int) ([]models.User, int64, error) {
+	args := m.Called(userID, limit, offset)
+	return args.Get(0).([]models.User), args.Get(1).(int64), args.Error(2)
+}
+
+// GetFollowing mocks the GetFollowing method
+func (m *MockUserRepository) GetFollowing(userID uuid.UUID, limit, offset int) ([]models.User, int64, error) {
+	args := m.Called(userID, limit, offset)
+	return args.Get(0).([]models.User), args.Get(1).(int64), args.Error(2)
+}
+
+// GetFollowingIDs mocks the GetFollowingIDs method
+func (m *MockUserRepository) GetFollowingIDs(userID uuid.UUID) ([]uuid.UUID, error) {
+	args := m.Called(userID)
+	return args.Get(0).([]uuid.UUID), args.Error(1)
+}
+
+// SetInterests mocks the SetInterests method
+func (m *MockUserRepository) SetInterests(userID uuid.UUID, categoryIDs []uuid.UUID) error {
+	args := m.Called(userID, categoryIDs)
+	return args.Error(0)
+}
+
+// GetInterests mocks the GetInterests method
+func (m *MockUserRepository) GetInterests(userID uuid.UUID) ([]models.Category, error) {
+	args := m.Called(userID)
+	return args.Get(0).([]models.Category), args.Error(1)
+}
+
+// GetInterestIDs mocks the GetInterestIDs method
+func (m *MockUserRepository) GetInterestIDs(userID uuid.UUID) ([]uuid.UUID, error) {
+	args := m.Called(userID)
+	return args.Get(0).([]uuid.UUID), args.Error(1)
+}

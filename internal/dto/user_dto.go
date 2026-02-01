@@ -59,3 +59,40 @@ type UserListItemResponse struct {
 	IsActive        bool      `json:"is_active"`
 	CreatedAt       time.Time `json:"created_at"`
 }
+
+// SetInterestsRequest represents a request to set user interests (category IDs)
+type SetInterestsRequest struct {
+	CategoryIDs []string `json:"category_ids" binding:"required,min=1"`
+}
+
+// FollowResponse represents a follow action response
+type FollowResponse struct {
+	IsFollowing bool `json:"is_following"`
+}
+
+// UserProfileResponse represents a detailed user profile with social info
+type UserProfileResponse struct {
+	ID              string             `json:"id"`
+	Username        string             `json:"username"`
+	Email           string             `json:"email,omitempty"`
+	FirstName       string             `json:"first_name"`
+	LastName        string             `json:"last_name"`
+	Bio             string             `json:"bio"`
+	ProfileImageURL *string            `json:"profile_image_url"`
+	Role            string             `json:"role"`
+	IsVerified      bool               `json:"is_verified"`
+	IsActive        bool               `json:"is_active"`
+	ArticleCount    int                `json:"article_count"`
+	FollowerCount   int                `json:"follower_count"`
+	FollowingCount  int                `json:"following_count"`
+	IsFollowing     bool               `json:"is_following,omitempty"`
+	Interests       []CategoryResponse `json:"interests,omitempty"`
+	CreatedAt       time.Time          `json:"created_at"`
+	UpdatedAt       time.Time          `json:"updated_at"`
+}
+
+// FollowListResponse represents a paginated list of followers/following
+type FollowListResponse struct {
+	Users []PublicUserResponse `json:"users"`
+	Total int64                `json:"total"`
+}

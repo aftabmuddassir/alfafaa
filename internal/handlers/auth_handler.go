@@ -174,3 +174,30 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	// API completeness and could be extended to blacklist tokens.
 	utils.SuccessResponse(c, http.StatusOK, "Logout successful", nil)
 }
+
+// GoogleAuth handles Google OAuth authentication
+// @Summary Authenticate with Google
+// @Description Authenticate a user using Google OAuth ID token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body dto.GoogleAuthRequest true "Google ID token"
+// @Success 200 {object} utils.Response{data=dto.AuthResponse} "Authentication successful"
+// @Failure 400 {object} utils.Response "Validation error"
+// @Failure 401 {object} utils.Response "Invalid token"
+// @Router /auth/google [post]
+func (h *AuthHandler) GoogleAuth(c *gin.Context) {
+	var req dto.GoogleAuthRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.HandleValidationError(c, utils.ParseValidationErrors(err))
+		return
+	}
+
+	response, err := h.authService.GoogleAuth(&req)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Authentication successful", response)
+}

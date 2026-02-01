@@ -20,6 +20,8 @@ type ArticleRepository interface {
 	FindTrending(limit int) ([]models.Article, error)
 	FindRecent(limit int) ([]models.Article, error)
 	FindRelated(articleID uuid.UUID, categoryIDs, tagIDs []uuid.UUID, limit int) ([]models.Article, error)
+	FindForUser(userID uuid.UUID, followingIDs, interestCategoryIDs []uuid.UUID, filters ArticleFilters) ([]models.Article, int64, error)
+	FindStaffPicks(filters ArticleFilters) ([]models.Article, int64, error)
 	Update(article *models.Article) error
 	Delete(id uuid.UUID) error
 	ExistsBySlug(slug string) (bool, error)
@@ -27,6 +29,7 @@ type ArticleRepository interface {
 	UpdateCategories(article *models.Article, categories []models.Category) error
 	UpdateTags(article *models.Article, tags []models.Tag) error
 	Search(query string, filters ArticleFilters) ([]models.Article, int64, error)
+	SetStaffPick(id uuid.UUID, isStaffPick bool) error
 	// WithTx returns a new repository instance using the provided transaction
 	WithTx(tx *gorm.DB) ArticleRepository
 }
@@ -336,4 +339,88 @@ func (r *articleRepository) applyPaginationAndSort(query *gorm.DB, filters Artic
 	}
 
 	return query
+}
+
+// FindForUser finds articles personalized for a user based on followed authors and interests
+func (r *articleRepository) FindForUser(userID uuid.UUID, followingIDs, interestCategoryIDs []uuid.UUID, filters ArticleFilters) ([]models.Article, int64, error) {
+	var articles []models.Article
+	var total int64
+
+	query := r.db.Model(&models.Article{}).
+		Where("status = ?", models.StatusPublished)
+
+	// Build the personalized feed query
+	if len(followingIDs) > 0 || len(interestCategoryIDs) > 0 {
+		subQuery := r.db
+
+		if len(followingIDs) > 0 && len(interestCategoryIDs) > 0 {
+			// Articles from followed authors OR in interested categories
+			subQuery = r.db.Model(&models.Article{}).
+				Select("DISTINCT articles.id").
+				Joins("LEFT JOIN article_categories ON article_categories.article_id = articles.id").
+				Where("articles.author_id IN ? OR article_categories.category_id IN ?", followingIDs, interestCategoryIDs)
+			query = query.Where("id IN (?)", subQuery)
+		} else if len(followingIDs) > 0 {
+			// Only followed authors
+			query = query.Where("author_id IN ?", followingIDs)
+		} else {
+			// Only interested categories
+			subQuery = r.db.Model(&models.Article{}).
+				Select("DISTINCT articles.id").
+				Joins("JOIN article_categories ON article_categories.article_id = articles.id").
+				Where("article_categories.category_id IN ?", interestCategoryIDs)
+			query = query.Where("id IN (?)", subQuery)
+		}
+	}
+
+	// Apply additional filters
+	query = r.applyFilters(query, filters)
+
+	// Get total count
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination and ordering
+	query = r.applyPaginationAndSort(query, filters)
+
+	// Preload relationships
+	err := query.
+		Preload("Author").
+		Preload("Categories").
+		Preload("Tags").
+		Find(&articles).Error
+
+	return articles, total, err
+}
+
+// FindStaffPicks finds articles marked as staff picks
+func (r *articleRepository) FindStaffPicks(filters ArticleFilters) ([]models.Article, int64, error) {
+	var articles []models.Article
+	var total int64
+
+	query := r.db.Model(&models.Article{}).
+		Where("is_staff_pick = ?", true).
+		Where("status = ?", models.StatusPublished)
+
+	query = r.applyFilters(query, filters)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	query = r.applyPaginationAndSort(query, filters)
+
+	err := query.
+		Preload("Author").
+		Preload("Categories").
+		Preload("Tags").
+		Find(&articles).Error
+
+	return articles, total, err
+}
+
+// SetStaffPick sets the staff pick status of an article
+func (r *articleRepository) SetStaffPick(id uuid.UUID, isStaffPick bool) error {
+	return r.db.Model(&models.Article{}).Where("id = ?", id).Update("is_staff_pick", isStaffPick).Error
 }

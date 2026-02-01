@@ -12,13 +12,21 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Server    ServerConfig
-	Database  DatabaseConfig
-	JWT       JWTConfig
-	Upload    UploadConfig
-	CORS      CORSConfig
-	RateLimit RateLimitConfig
-	Security  SecurityConfig
+	Server      ServerConfig
+	Database    DatabaseConfig
+	JWT         JWTConfig
+	Upload      UploadConfig
+	CORS        CORSConfig
+	RateLimit   RateLimitConfig
+	Security    SecurityConfig
+	GoogleOAuth GoogleOAuthConfig
+}
+
+// GoogleOAuthConfig holds Google OAuth configuration
+type GoogleOAuthConfig struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURLs []string
 }
 
 // ServerConfig holds server-related configuration
@@ -112,6 +120,11 @@ func LoadConfig() (*Config, error) {
 			EnableSanitization: parseBool(getEnv("ENABLE_SANITIZATION", "true")),
 			TrustedProxies:     parseSlice(getEnv("TRUSTED_PROXIES", "127.0.0.1")),
 			LogPath:            getEnv("LOG_PATH", ""),
+		},
+		GoogleOAuth: GoogleOAuthConfig{
+			ClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+			ClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+			RedirectURLs: parseSlice(getEnv("GOOGLE_REDIRECT_URLS", "http://localhost:5173,http://localhost:3000")),
 		},
 	}, nil
 }

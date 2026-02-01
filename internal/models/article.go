@@ -38,6 +38,7 @@ type Article struct {
 	PublishedAt        *time.Time     `gorm:"index" json:"published_at"`
 	ViewCount          int            `gorm:"default:0" json:"view_count"`
 	ReadingTimeMinutes int            `gorm:"default:1" json:"reading_time_minutes"`
+	IsStaffPick        bool           `gorm:"default:false;index" json:"is_staff_pick"`
 	MetaTitle          string         `gorm:"type:varchar(70)" json:"meta_title"`
 	MetaDescription    string         `gorm:"type:varchar(160)" json:"meta_description"`
 	MetaKeywords       string         `gorm:"type:varchar(255)" json:"meta_keywords"`
@@ -156,4 +157,9 @@ func (a *Article) HasTag(tagID uuid.UUID) bool {
 		}
 	}
 	return false
+}
+
+// SetStaffPick marks or unmarks the article as a staff pick
+func (a *Article) SetStaffPick(isStaffPick bool) {
+	a.IsStaffPick = isStaffPick
 }

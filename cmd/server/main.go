@@ -115,6 +115,7 @@ func main() {
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
+	userActionHandler := handlers.NewUserActionHandler(userService)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
 	tagHandler := handlers.NewTagHandler(tagService)
 	articleHandler := handlers.NewArticleHandler(articleService)
@@ -173,6 +174,7 @@ func main() {
 		{
 			auth.POST("/register", middlewares.AuthRateLimiter(), authHandler.Register)
 			auth.POST("/login", middlewares.AuthRateLimiter(), authHandler.Login)
+			auth.POST("/google", middlewares.AuthRateLimiter(), authHandler.GoogleAuth)
 			auth.POST("/refresh-token", authHandler.RefreshToken)
 			auth.POST("/logout", authHandler.Logout)
 			auth.GET("/me", middlewares.AuthMiddleware(cfg.JWT.Secret), authHandler.GetMe)
@@ -184,10 +186,19 @@ func main() {
 		{
 			users.GET("", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), userHandler.GetUsers)
 			users.GET("/:id", userHandler.GetUser)
+			users.GET("/:id/profile", middlewares.OptionalAuthMiddleware(cfg.JWT.Secret), userActionHandler.GetUserProfile)
 			users.PUT("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), userHandler.UpdateUser)
 			users.PUT("/:id/admin", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireAdmin(), userHandler.AdminUpdateUser)
 			users.DELETE("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireAdmin(), userHandler.DeleteUser)
 			users.GET("/:id/articles", userHandler.GetUserArticles)
+			// Social graph routes
+			users.POST("/:id/follow", middlewares.AuthMiddleware(cfg.JWT.Secret), userActionHandler.FollowUser)
+			users.POST("/:id/unfollow", middlewares.AuthMiddleware(cfg.JWT.Secret), userActionHandler.UnfollowUser)
+			users.GET("/:id/followers", userActionHandler.GetFollowers)
+			users.GET("/:id/following", userActionHandler.GetFollowing)
+			// Interest routes (for current user)
+			users.POST("/interests", middlewares.AuthMiddleware(cfg.JWT.Secret), userActionHandler.SetInterests)
+			users.GET("/interests", middlewares.AuthMiddleware(cfg.JWT.Secret), userActionHandler.GetInterests)
 		}
 
 		// Article routes
@@ -197,6 +208,8 @@ func main() {
 			articles.GET("", middlewares.OptionalAuthMiddleware(cfg.JWT.Secret), articleHandler.GetArticles)
 			articles.GET("/trending", articleHandler.GetTrendingArticles)
 			articles.GET("/recent", articleHandler.GetRecentArticles)
+			articles.GET("/staff-picks", userActionHandler.GetStaffPicks)
+			articles.GET("/feed", middlewares.AuthMiddleware(cfg.JWT.Secret), userActionHandler.GetPersonalizedFeed)
 			articles.GET("/:slug", middlewares.OptionalAuthMiddleware(cfg.JWT.Secret), articleHandler.GetArticle)
 			articles.GET("/:slug/related", articleHandler.GetRelatedArticles)
 

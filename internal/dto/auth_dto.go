@@ -79,3 +79,19 @@ type PublicUserResponse struct {
 	Bio             string  `json:"bio"`
 	ProfileImageURL *string `json:"profile_image_url"`
 }
+
+// GoogleAuthRequest represents a Google OAuth authentication request
+type GoogleAuthRequest struct {
+	IDToken string `json:"id_token" binding:"required"`
+}
+
+// GoogleUserInfo represents user info from Google OAuth
+type GoogleUserInfo struct {
+	ID            string `json:"sub"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Name          string `json:"name"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Picture       string `json:"picture"`
+}

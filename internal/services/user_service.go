@@ -14,11 +14,23 @@ import (
 // UserService defines the interface for user operations
 type UserService interface {
 	GetUser(id string) (*dto.UserDetailResponse, error)
+	GetUserProfile(id string, currentUserID string) (*dto.UserProfileResponse, error)
 	GetUsers(query *dto.UserListQuery) ([]dto.UserListItemResponse, int64, error)
 	UpdateUser(id string, req *dto.UpdateUserRequest, currentUserID string, isAdmin bool) (*dto.UserDetailResponse, error)
 	AdminUpdateUser(id string, req *dto.AdminUpdateUserRequest) (*dto.UserDetailResponse, error)
 	DeleteUser(id string) error
 	GetUserArticles(id string, query *dto.PaginationQuery) ([]dto.ArticleListItemResponse, int64, error)
+	// Social graph methods
+	FollowUser(followerID, followingID string) (*dto.FollowResponse, error)
+	UnfollowUser(followerID, followingID string) (*dto.FollowResponse, error)
+	GetFollowers(userID string, query *dto.PaginationQuery) (*dto.FollowListResponse, error)
+	GetFollowing(userID string, query *dto.PaginationQuery) (*dto.FollowListResponse, error)
+	// Interest methods
+	SetInterests(userID string, req *dto.SetInterestsRequest) ([]dto.CategoryResponse, error)
+	GetInterests(userID string) ([]dto.CategoryResponse, error)
+	// Feed methods
+	GetPersonalizedFeed(userID string, query *dto.PaginationQuery) ([]dto.ArticleListItemResponse, int64, error)
+	GetStaffPicks(query *dto.PaginationQuery) ([]dto.ArticleListItemResponse, int64, error)
 }
 
 type userService struct {
@@ -311,4 +323,306 @@ func toArticleListItemResponse(article *models.Article) dto.ArticleListItemRespo
 	}
 
 	return response
+}
+
+// GetUserProfile retrieves a user profile with social info
+func (s *userService) GetUserProfile(id string, currentUserID string) (*dto.UserProfileResponse, error) {
+	userID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, utils.ErrBadRequest
+	}
+
+	user, err := s.userRepo.FindByIDWithRelations(userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound
+		}
+		return nil, utils.WrapError(err, "failed to find user")
+	}
+
+	// Get article count
+	_, articleCount, _ := s.articleRepo.FindByAuthor(userID, repositories.ArticleFilters{
+		Status: string(models.StatusPublished),
+	})
+
+	// Get follower/following counts
+	_, followerCount, _ := s.userRepo.GetFollowers(userID, 0, 0)
+	_, followingCount, _ := s.userRepo.GetFollowing(userID, 0, 0)
+
+	// Check if current user is following this user
+	var isFollowing bool
+	if currentUserID != "" && currentUserID != id {
+		currentUID, err := uuid.Parse(currentUserID)
+		if err == nil {
+			isFollowing, _ = s.userRepo.IsFollowing(currentUID, userID)
+		}
+	}
+
+	// Convert interests to DTO
+	interests := make([]dto.CategoryResponse, len(user.Interests))
+	for i, cat := range user.Interests {
+		interests[i] = dto.CategoryResponse{
+			ID:   cat.ID.String(),
+			Name: cat.Name,
+			Slug: cat.Slug,
+		}
+	}
+
+	return &dto.UserProfileResponse{
+		ID:              user.ID.String(),
+		Username:        user.Username,
+		FirstName:       user.FirstName,
+		LastName:        user.LastName,
+		Bio:             user.Bio,
+		ProfileImageURL: user.ProfileImageURL,
+		Role:            string(user.Role),
+		IsVerified:      user.IsVerified,
+		IsActive:        user.IsActive,
+		ArticleCount:    int(articleCount),
+		FollowerCount:   int(followerCount),
+		FollowingCount:  int(followingCount),
+		IsFollowing:     isFollowing,
+		Interests:       interests,
+		CreatedAt:       user.CreatedAt,
+		UpdatedAt:       user.UpdatedAt,
+	}, nil
+}
+
+// FollowUser follows another user
+func (s *userService) FollowUser(followerID, followingID string) (*dto.FollowResponse, error) {
+	followerUUID, err := uuid.Parse(followerID)
+	if err != nil {
+		return nil, utils.ErrBadRequest
+	}
+
+	followingUUID, err := uuid.Parse(followingID)
+	if err != nil {
+		return nil, utils.ErrBadRequest
+	}
+
+	// Cannot follow yourself
+	if followerUUID == followingUUID {
+		return nil, utils.NewAppError("INVALID_OPERATION", "You cannot follow yourself", 400)
+	}
+
+	// Check if user to follow exists
+	_, err = s.userRepo.FindByID(followingUUID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound
+		}
+		return nil, utils.WrapError(err, "failed to find user")
+	}
+
+	// Check if already following
+	isFollowing, err := s.userRepo.IsFollowing(followerUUID, followingUUID)
+	if err != nil {
+		return nil, utils.WrapError(err, "failed to check follow status")
+	}
+
+	if isFollowing {
+		return &dto.FollowResponse{IsFollowing: true}, nil
+	}
+
+	// Create follow relationship
+	if err := s.userRepo.FollowUser(followerUUID, followingUUID); err != nil {
+		return nil, utils.WrapError(err, "failed to follow user")
+	}
+
+	return &dto.FollowResponse{IsFollowing: true}, nil
+}
+
+// UnfollowUser unfollows another user
+func (s *userService) UnfollowUser(followerID, followingID string) (*dto.FollowResponse, error) {
+	followerUUID, err := uuid.Parse(followerID)
+	if err != nil {
+		return nil, utils.ErrBadRequest
+	}
+
+	followingUUID, err := uuid.Parse(followingID)
+	if err != nil {
+		return nil, utils.ErrBadRequest
+	}
+
+	// Cannot unfollow yourself
+	if followerUUID == followingUUID {
+		return nil, utils.NewAppError("INVALID_OPERATION", "You cannot unfollow yourself", 400)
+	}
+
+	// Remove follow relationship
+	if err := s.userRepo.UnfollowUser(followerUUID, followingUUID); err != nil {
+		return nil, utils.WrapError(err, "failed to unfollow user")
+	}
+
+	return &dto.FollowResponse{IsFollowing: false}, nil
+}
+
+// GetFollowers returns the followers of a user
+func (s *userService) GetFollowers(userID string, query *dto.PaginationQuery) (*dto.FollowListResponse, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, utils.ErrBadRequest
+	}
+
+	users, total, err := s.userRepo.GetFollowers(userUUID, query.GetPerPage(), query.GetOffset())
+	if err != nil {
+		return nil, utils.WrapError(err, "failed to get followers")
+	}
+
+	userResponses := make([]dto.PublicUserResponse, len(users))
+	for i, user := range users {
+		userResponses[i] = dto.PublicUserResponse{
+			ID:              user.ID.String(),
+			Username:        user.Username,
+			FirstName:       user.FirstName,
+			LastName:        user.LastName,
+			Bio:             user.Bio,
+			ProfileImageURL: user.ProfileImageURL,
+		}
+	}
+
+	return &dto.FollowListResponse{
+		Users: userResponses,
+		Total: total,
+	}, nil
+}
+
+// GetFollowing returns the users that a user follows
+func (s *userService) GetFollowing(userID string, query *dto.PaginationQuery) (*dto.FollowListResponse, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, utils.ErrBadRequest
+	}
+
+	users, total, err := s.userRepo.GetFollowing(userUUID, query.GetPerPage(), query.GetOffset())
+	if err != nil {
+		return nil, utils.WrapError(err, "failed to get following")
+	}
+
+	userResponses := make([]dto.PublicUserResponse, len(users))
+	for i, user := range users {
+		userResponses[i] = dto.PublicUserResponse{
+			ID:              user.ID.String(),
+			Username:        user.Username,
+			FirstName:       user.FirstName,
+			LastName:        user.LastName,
+			Bio:             user.Bio,
+			ProfileImageURL: user.ProfileImageURL,
+		}
+	}
+
+	return &dto.FollowListResponse{
+		Users: userResponses,
+		Total: total,
+	}, nil
+}
+
+// SetInterests sets the user's interests (categories)
+func (s *userService) SetInterests(userID string, req *dto.SetInterestsRequest) ([]dto.CategoryResponse, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, utils.ErrBadRequest
+	}
+
+	// Parse category IDs
+	categoryIDs := make([]uuid.UUID, len(req.CategoryIDs))
+	for i, id := range req.CategoryIDs {
+		catUUID, err := uuid.Parse(id)
+		if err != nil {
+			return nil, utils.NewAppError("INVALID_CATEGORY_ID", "Invalid category ID: "+id, 400)
+		}
+		categoryIDs[i] = catUUID
+	}
+
+	// Set interests
+	if err := s.userRepo.SetInterests(userUUID, categoryIDs); err != nil {
+		return nil, utils.WrapError(err, "failed to set interests")
+	}
+
+	// Return updated interests
+	return s.GetInterests(userID)
+}
+
+// GetInterests returns the user's interests (categories)
+func (s *userService) GetInterests(userID string) ([]dto.CategoryResponse, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, utils.ErrBadRequest
+	}
+
+	categories, err := s.userRepo.GetInterests(userUUID)
+	if err != nil {
+		return nil, utils.WrapError(err, "failed to get interests")
+	}
+
+	responses := make([]dto.CategoryResponse, len(categories))
+	for i, cat := range categories {
+		responses[i] = dto.CategoryResponse{
+			ID:   cat.ID.String(),
+			Name: cat.Name,
+			Slug: cat.Slug,
+		}
+	}
+
+	return responses, nil
+}
+
+// GetPersonalizedFeed returns articles personalized for the user
+func (s *userService) GetPersonalizedFeed(userID string, query *dto.PaginationQuery) ([]dto.ArticleListItemResponse, int64, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, 0, utils.ErrBadRequest
+	}
+
+	// Get user's following and interests
+	followingIDs, err := s.userRepo.GetFollowingIDs(userUUID)
+	if err != nil {
+		return nil, 0, utils.WrapError(err, "failed to get following")
+	}
+
+	interestIDs, err := s.userRepo.GetInterestIDs(userUUID)
+	if err != nil {
+		return nil, 0, utils.WrapError(err, "failed to get interests")
+	}
+
+	filters := repositories.ArticleFilters{
+		Status: string(models.StatusPublished),
+		Limit:  query.GetPerPage(),
+		Offset: query.GetOffset(),
+		Sort:   query.GetSort(),
+	}
+
+	articles, total, err := s.articleRepo.FindForUser(userUUID, followingIDs, interestIDs, filters)
+	if err != nil {
+		return nil, 0, utils.WrapError(err, "failed to get personalized feed")
+	}
+
+	responses := make([]dto.ArticleListItemResponse, len(articles))
+	for i, article := range articles {
+		responses[i] = toArticleListItemResponse(&article)
+	}
+
+	return responses, total, nil
+}
+
+// GetStaffPicks returns articles marked as staff picks
+func (s *userService) GetStaffPicks(query *dto.PaginationQuery) ([]dto.ArticleListItemResponse, int64, error) {
+	filters := repositories.ArticleFilters{
+		Status: string(models.StatusPublished),
+		Limit:  query.GetPerPage(),
+		Offset: query.GetOffset(),
+		Sort:   query.GetSort(),
+	}
+
+	articles, total, err := s.articleRepo.FindStaffPicks(filters)
+	if err != nil {
+		return nil, 0, utils.WrapError(err, "failed to get staff picks")
+	}
+
+	responses := make([]dto.ArticleListItemResponse, len(articles))
+	for i, article := range articles {
+		responses[i] = toArticleListItemResponse(&article)
+	}
+
+	return responses, total, nil
 }
