@@ -148,15 +148,17 @@ func main() {
 	// 3. Logger - Log all requests with context
 	router.Use(middlewares.LoggerMiddleware())
 
-	// 4. Security Headers - Add security headers to all responses
-	router.Use(middlewares.SecurityHeadersMiddleware())
-
-	// 5. CORS - Handle cross-origin requests
+	// 4. CORS - Must run BEFORE security headers so preflight OPTIONS gets proper response
 	if cfg.Server.Mode == "release" || cfg.Server.Mode == "production" {
+		utils.Info("CORS: using production config", zap.Strings("allowed_origins", cfg.CORS.AllowedOrigins))
 		router.Use(middlewares.CORSMiddleware(middlewares.ProductionCORSConfig(cfg.CORS.AllowedOrigins)))
 	} else {
+		utils.Info("CORS: using development config (allow all origins)")
 		router.Use(middlewares.DevelopmentCORS())
 	}
+
+	// 5. Security Headers - Add security headers to all responses
+	router.Use(middlewares.SecurityHeadersMiddleware())
 
 	// Apply general rate limiting if enabled
 	if cfg.Security.EnableRateLimit {

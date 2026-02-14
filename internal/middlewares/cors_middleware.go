@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/alfafaa/alfafaa-blog/internal/utils"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // CORSConfig holds CORS configuration
@@ -47,6 +49,12 @@ func CORSMiddleware(config CORSConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 
+		utils.Debug("CORS: request",
+			zap.String("method", c.Request.Method),
+			zap.String("path", c.Request.URL.Path),
+			zap.String("origin", origin),
+		)
+
 		// Check if the origin is allowed
 		allowedOrigin := ""
 		for _, o := range config.AllowedOrigins {
@@ -58,6 +66,13 @@ func CORSMiddleware(config CORSConfig) gin.HandlerFunc {
 				allowedOrigin = origin
 				break
 			}
+		}
+
+		if allowedOrigin == "" {
+			utils.Warn("CORS: origin not allowed",
+				zap.String("origin", origin),
+				zap.Strings("allowed", config.AllowedOrigins),
+			)
 		}
 
 		if allowedOrigin != "" {
@@ -77,6 +92,7 @@ func CORSMiddleware(config CORSConfig) gin.HandlerFunc {
 
 		// Handle preflight requests
 		if c.Request.Method == http.MethodOptions {
+			utils.Debug("CORS: preflight response", zap.String("allowed_origin", allowedOrigin))
 			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
