@@ -8,6 +8,7 @@ import (
 	"github.com/alfafaa/alfafaa-blog/internal/services"
 	"github.com/alfafaa/alfafaa-blog/internal/utils"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // AuthHandler handles authentication-related HTTP requests
@@ -187,17 +188,30 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // @Failure 401 {object} utils.Response "Invalid token"
 // @Router /auth/google [post]
 func (h *AuthHandler) GoogleAuth(c *gin.Context) {
+	utils.Info("GoogleAuth handler: request received",
+		zap.String("ip", c.ClientIP()),
+		zap.String("origin", c.GetHeader("Origin")),
+	)
+
 	var req dto.GoogleAuthRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Warn("GoogleAuth handler: invalid request body", zap.Error(err))
 		utils.HandleValidationError(c, utils.ParseValidationErrors(err))
 		return
 	}
 
+	utils.Info("GoogleAuth handler: calling auth service")
+
 	response, err := h.authService.GoogleAuth(&req)
 	if err != nil {
+		utils.Error("GoogleAuth handler: auth service error", zap.Error(err))
 		utils.HandleError(c, err)
 		return
 	}
+
+	utils.Info("GoogleAuth handler: success, sending 200 response",
+		zap.String("user_email", response.User.Email),
+	)
 
 	utils.SuccessResponse(c, http.StatusOK, "Authentication successful", response)
 }
