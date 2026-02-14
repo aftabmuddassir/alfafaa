@@ -21,7 +21,7 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 
 		// Control referrer information
 		// Only send origin for cross-origin requests
-		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+		//c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 
 		// Content Security Policy
 		// Restricts resource loading to prevent XSS
@@ -32,7 +32,7 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 				"style-src 'self' 'unsafe-inline'; "+
 				"img-src 'self' data: https:; "+
 				"font-src 'self'; "+
-				"connect-src 'self'; "+
+				"connect-src '*'; "+
 				"frame-ancestors 'none'")
 
 		// Strict Transport Security (HTTPS only)
