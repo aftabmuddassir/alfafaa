@@ -15,6 +15,7 @@ import (
 	"github.com/alfafaa/alfafaa-blog/internal/repositories"
 	"github.com/alfafaa/alfafaa-blog/internal/utils"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -43,33 +44,41 @@ func NewAuthService(userRepo repositories.UserRepository, jwtConfig config.JWTCo
 
 // Register creates a new user account
 func (s *authService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, error) {
+	utils.Debug("Register: started", zap.String("email", req.Email), zap.String("username", req.Username))
+
 	// Validate password strength
 	passwordErrors := utils.ValidatePasswordStrength(req.Password)
 	if len(passwordErrors) > 0 {
+		utils.Debug("Register: weak password", zap.String("email", req.Email))
 		return nil, utils.NewAppError("WEAK_PASSWORD", passwordErrors[0], 400)
 	}
 
 	// Check if email already exists
 	exists, err := s.userRepo.ExistsByEmail(req.Email)
 	if err != nil {
+		utils.Error("Register: failed to check email", zap.Error(err))
 		return nil, utils.WrapError(err, "failed to check email")
 	}
 	if exists {
+		utils.Debug("Register: email already exists", zap.String("email", req.Email))
 		return nil, utils.ErrEmailExists
 	}
 
 	// Check if username already exists
 	exists, err = s.userRepo.ExistsByUsername(req.Username)
 	if err != nil {
+		utils.Error("Register: failed to check username", zap.Error(err))
 		return nil, utils.WrapError(err, "failed to check username")
 	}
 	if exists {
+		utils.Debug("Register: username already exists", zap.String("username", req.Username))
 		return nil, utils.ErrUsernameExists
 	}
 
 	// Hash password
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
+		utils.Error("Register: failed to hash password", zap.Error(err))
 		return nil, utils.WrapError(err, "failed to hash password")
 	}
 
@@ -86,8 +95,10 @@ func (s *authService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, err
 	}
 
 	if err := s.userRepo.Create(user); err != nil {
+		utils.Error("Register: failed to create user", zap.Error(err))
 		return nil, utils.WrapError(err, "failed to create user")
 	}
+	utils.Debug("Register: user created in DB", zap.String("user_id", user.ID.String()))
 
 	// Generate tokens
 	tokens, err := utils.GenerateTokenPair(
@@ -99,8 +110,10 @@ func (s *authService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, err
 		s.jwtConfig.RefreshExpiration,
 	)
 	if err != nil {
+		utils.Error("Register: failed to generate tokens", zap.Error(err))
 		return nil, utils.WrapError(err, "failed to generate tokens")
 	}
+	utils.Info("Register: success", zap.String("user_id", user.ID.String()), zap.String("email", req.Email))
 
 	return &dto.AuthResponse{
 		User:         s.toUserResponse(user),
@@ -112,27 +125,36 @@ func (s *authService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, err
 
 // Login authenticates a user
 func (s *authService) Login(req *dto.LoginRequest) (*dto.AuthResponse, error) {
+	utils.Debug("Login: started", zap.String("email", req.Email))
+
 	// Find user by email
 	user, err := s.userRepo.FindByEmail(req.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.Debug("Login: user not found", zap.String("email", req.Email))
 			return nil, utils.ErrInvalidCredentials
 		}
+		utils.Error("Login: failed to find user", zap.Error(err))
 		return nil, utils.WrapError(err, "failed to find user")
 	}
+	utils.Debug("Login: user found", zap.String("user_id", user.ID.String()))
 
 	// Check if user is active
 	if !user.IsActive {
+		utils.Debug("Login: account disabled", zap.String("user_id", user.ID.String()))
 		return nil, utils.NewAppError("ACCOUNT_DISABLED", "Your account has been disabled", 403)
 	}
 
 	// Verify password
 	if !utils.CheckPassword(req.Password, user.PasswordHash) {
+		utils.Debug("Login: invalid password", zap.String("email", req.Email))
 		return nil, utils.ErrInvalidCredentials
 	}
+	utils.Debug("Login: password verified", zap.String("user_id", user.ID.String()))
 
 	// Update last login
 	_ = s.userRepo.UpdateLastLogin(user.ID)
+	utils.Debug("Login: last login updated", zap.String("user_id", user.ID.String()))
 
 	// Generate tokens
 	tokens, err := utils.GenerateTokenPair(
@@ -144,8 +166,10 @@ func (s *authService) Login(req *dto.LoginRequest) (*dto.AuthResponse, error) {
 		s.jwtConfig.RefreshExpiration,
 	)
 	if err != nil {
+		utils.Error("Login: failed to generate tokens", zap.Error(err))
 		return nil, utils.WrapError(err, "failed to generate tokens")
 	}
+	utils.Info("Login: success", zap.String("user_id", user.ID.String()), zap.String("email", req.Email))
 
 	// Get updated user
 	user.LastLoginAt = &[]time.Time{time.Now()}[0]
@@ -285,35 +309,45 @@ func (s *authService) toUserResponse(user *models.User) dto.UserResponse {
 // This is a stub implementation that validates the Google ID token
 // and creates/logs in the user
 func (s *authService) GoogleAuth(req *dto.GoogleAuthRequest) (*dto.AuthResponse, error) {
+	utils.Debug("GoogleAuth: started")
+
 	// Validate the Google ID token
-	// In production, you would verify this token with Google's API
-	// For now, we'll decode the token payload (JWT) to get user info
 	googleUserInfo, err := s.verifyGoogleIDToken(req.IDToken)
 	if err != nil {
+		utils.Warn("GoogleAuth: invalid ID token", zap.Error(err))
 		return nil, utils.NewAppError("INVALID_TOKEN", "Invalid Google ID token", 401)
 	}
+	utils.Debug("GoogleAuth: token decoded", zap.String("google_id", googleUserInfo.ID), zap.String("email", googleUserInfo.Email))
 
 	// Try to find existing user by Google ID
 	user, err := s.userRepo.FindByGoogleID(googleUserInfo.ID)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.Error("GoogleAuth: failed to find user by google ID", zap.Error(err))
 			return nil, utils.WrapError(err, "failed to find user")
 		}
+
+		utils.Debug("GoogleAuth: no user with google ID, trying email", zap.String("email", googleUserInfo.Email))
 
 		// User not found by Google ID, try by email
 		user, err = s.userRepo.FindByEmail(googleUserInfo.Email)
 		if err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				utils.Error("GoogleAuth: failed to find user by email", zap.Error(err))
 				return nil, utils.WrapError(err, "failed to find user")
 			}
 
 			// Create new user
+			utils.Debug("GoogleAuth: creating new user", zap.String("email", googleUserInfo.Email))
 			user, err = s.createGoogleUser(googleUserInfo)
 			if err != nil {
+				utils.Error("GoogleAuth: failed to create user", zap.Error(err))
 				return nil, err
 			}
+			utils.Debug("GoogleAuth: user created", zap.String("user_id", user.ID.String()))
 		} else {
 			// Link existing account with Google
+			utils.Debug("GoogleAuth: linking existing account", zap.String("user_id", user.ID.String()))
 			googleID := googleUserInfo.ID
 			user.GoogleID = &googleID
 			user.AuthProvider = "google"
@@ -321,13 +355,18 @@ func (s *authService) GoogleAuth(req *dto.GoogleAuthRequest) (*dto.AuthResponse,
 				user.ProfileImageURL = &googleUserInfo.Picture
 			}
 			if err := s.userRepo.Update(user); err != nil {
+				utils.Error("GoogleAuth: failed to link Google account", zap.Error(err))
 				return nil, utils.WrapError(err, "failed to link Google account")
 			}
+			utils.Debug("GoogleAuth: account linked")
 		}
+	} else {
+		utils.Debug("GoogleAuth: existing user found by google ID", zap.String("user_id", user.ID.String()))
 	}
 
 	// Check if user is active
 	if !user.IsActive {
+		utils.Debug("GoogleAuth: account disabled", zap.String("user_id", user.ID.String()))
 		return nil, utils.NewAppError("ACCOUNT_DISABLED", "Your account has been disabled", 403)
 	}
 
@@ -335,6 +374,7 @@ func (s *authService) GoogleAuth(req *dto.GoogleAuthRequest) (*dto.AuthResponse,
 	_ = s.userRepo.UpdateLastLogin(user.ID)
 	now := time.Now()
 	user.LastLoginAt = &now
+	utils.Debug("GoogleAuth: last login updated", zap.String("user_id", user.ID.String()))
 
 	// Generate tokens
 	tokens, err := utils.GenerateTokenPair(
@@ -346,8 +386,10 @@ func (s *authService) GoogleAuth(req *dto.GoogleAuthRequest) (*dto.AuthResponse,
 		s.jwtConfig.RefreshExpiration,
 	)
 	if err != nil {
+		utils.Error("GoogleAuth: failed to generate tokens", zap.Error(err))
 		return nil, utils.WrapError(err, "failed to generate tokens")
 	}
+	utils.Info("GoogleAuth: success", zap.String("user_id", user.ID.String()), zap.String("email", googleUserInfo.Email))
 
 	return &dto.AuthResponse{
 		User:         s.toUserResponse(user),

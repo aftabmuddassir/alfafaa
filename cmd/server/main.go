@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	_ "github.com/alfafaa/alfafaa-blog/docs"
+	"github.com/alfafaa/alfafaa-blog/docs"
 	"github.com/alfafaa/alfafaa-blog/internal/config"
 	"github.com/alfafaa/alfafaa-blog/internal/database"
 	"github.com/alfafaa/alfafaa-blog/internal/handlers"
@@ -166,7 +166,13 @@ func main() {
 	// Serve uploaded files
 	router.Static("/uploads", cfg.Upload.Path)
 
-	// Swagger documentation
+	// Swagger documentation - override host dynamically
+	if swaggerHost := os.Getenv("SWAGGER_HOST"); swaggerHost != "" {
+		docs.SwaggerInfo.Host = swaggerHost
+	}
+	if os.Getenv("SWAGGER_SCHEMES") == "https" {
+		docs.SwaggerInfo.Schemes = []string{"https"}
+	}
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API v1 routes
