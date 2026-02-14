@@ -9,7 +9,7 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Prevent clickjacking attacks
 		// Denies rendering the page in a frame/iframe
-		c.Header("X-Frame-Options", "DENY")
+		c.Header("X-Frame-Options", "SAMEORIGIN")
 
 		// Prevent MIME type sniffing
 		// Forces browser to respect Content-Type header
