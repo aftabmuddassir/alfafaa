@@ -29,10 +29,12 @@ type ArticleService interface {
 }
 
 type articleService struct {
-	db           *gorm.DB
-	articleRepo  repositories.ArticleRepository
-	categoryRepo repositories.CategoryRepository
-	tagRepo      repositories.TagRepository
+	db             *gorm.DB
+	articleRepo    repositories.ArticleRepository
+	categoryRepo   repositories.CategoryRepository
+	tagRepo        repositories.TagRepository
+	engagementRepo repositories.EngagementRepository
+	userRepo       repositories.UserRepository
 }
 
 // NewArticleService creates a new article service
@@ -41,12 +43,34 @@ func NewArticleService(
 	articleRepo repositories.ArticleRepository,
 	categoryRepo repositories.CategoryRepository,
 	tagRepo repositories.TagRepository,
+	opts ...ArticleServiceOption,
 ) ArticleService {
-	return &articleService{
+	svc := &articleService{
 		db:           db,
 		articleRepo:  articleRepo,
 		categoryRepo: categoryRepo,
 		tagRepo:      tagRepo,
+	}
+	for _, opt := range opts {
+		opt(svc)
+	}
+	return svc
+}
+
+// ArticleServiceOption is a functional option for configuring the article service
+type ArticleServiceOption func(*articleService)
+
+// WithEngagementRepo sets the engagement repository on the article service
+func WithEngagementRepo(repo repositories.EngagementRepository) ArticleServiceOption {
+	return func(s *articleService) {
+		s.engagementRepo = repo
+	}
+}
+
+// WithUserRepo sets the user repository on the article service (for publish notifications)
+func WithUserRepo(repo repositories.UserRepository) ArticleServiceOption {
+	return func(s *articleService) {
+		s.userRepo = repo
 	}
 }
 
@@ -523,6 +547,25 @@ func (s *articleService) PublishArticle(id string) (*dto.ArticleDetailResponse, 
 
 	if err := s.articleRepo.Update(article); err != nil {
 		return nil, utils.WrapError(err, "failed to publish article")
+	}
+
+	// Create publish notification for the author's followers
+	if s.engagementRepo != nil && s.userRepo != nil && article.Author != nil {
+		actorName := article.Author.GetFullName()
+		message := fmt.Sprintf("%s published a new article", actorName)
+		followers, _, _ := s.userRepo.GetFollowers(article.AuthorID, 0, 0)
+		for _, follower := range followers {
+			if follower.ID != article.AuthorID {
+				notification := &models.Notification{
+					UserID:    follower.ID,
+					ActorID:   article.AuthorID,
+					Type:      models.NotificationTypeArticle,
+					Message:   message,
+					ArticleID: &article.ID,
+				}
+				_ = s.engagementRepo.CreateNotification(notification)
+			}
+		}
 	}
 
 	return s.toDetailResponse(article), nil

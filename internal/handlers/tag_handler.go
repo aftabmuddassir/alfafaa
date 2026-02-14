@@ -121,7 +121,7 @@ func (h *TagHandler) CreateTag(c *gin.Context) {
 // @Failure 404 {object} utils.Response "Tag not found"
 // @Router /tags/{id} [put]
 func (h *TagHandler) UpdateTag(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("slug") // Gin requires consistent param names; value is a UUID
 	if id == "" {
 		utils.ErrorResponseJSON(c, http.StatusBadRequest, "INVALID_ID", "Tag ID is required", nil)
 		return
@@ -156,7 +156,7 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 // @Failure 404 {object} utils.Response "Tag not found"
 // @Router /tags/{id} [delete]
 func (h *TagHandler) DeleteTag(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("slug") // Gin requires consistent param names; value is a UUID
 	if id == "" {
 		utils.ErrorResponseJSON(c, http.StatusBadRequest, "INVALID_ID", "Tag ID is required", nil)
 		return

@@ -102,15 +102,22 @@ func main() {
 	tagRepo := repositories.NewTagRepository(db)
 	articleRepo := repositories.NewArticleRepository(db)
 	mediaRepo := repositories.NewMediaRepository(db)
+	commentRepo := repositories.NewCommentRepository(db)
+	engagementRepo := repositories.NewEngagementRepository(db)
 
 	// Initialize services
 	authService := services.NewAuthService(userRepo, cfg.JWT)
-	userService := services.NewUserService(userRepo, articleRepo)
+	userService := services.NewUserService(userRepo, articleRepo, engagementRepo)
 	categoryService := services.NewCategoryService(categoryRepo, articleRepo)
 	tagService := services.NewTagService(tagRepo, articleRepo)
-	articleService := services.NewArticleService(db, articleRepo, categoryRepo, tagRepo)
+	articleService := services.NewArticleService(db, articleRepo, categoryRepo, tagRepo,
+		services.WithEngagementRepo(engagementRepo),
+		services.WithUserRepo(userRepo),
+	)
 	mediaService := services.NewMediaService(mediaRepo, cfg.Upload)
 	searchService := services.NewSearchService(articleRepo, categoryRepo, tagRepo)
+	engagementService := services.NewEngagementService(engagementRepo, articleRepo, commentRepo, userRepo)
+
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -118,9 +125,10 @@ func main() {
 	userActionHandler := handlers.NewUserActionHandler(userService)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
 	tagHandler := handlers.NewTagHandler(tagService)
-	articleHandler := handlers.NewArticleHandler(articleService)
+	articleHandler := handlers.NewArticleHandler(articleService, engagementService)
 	mediaHandler := handlers.NewMediaHandler(mediaService, cfg.Upload)
 	searchHandler := handlers.NewSearchHandler(searchService)
+	engagementHandler := handlers.NewEngagementHandler(engagementService)
 
 	// Create Gin router (use gin.New() to avoid default middleware)
 	router := gin.New()
@@ -199,6 +207,8 @@ func main() {
 			// Interest routes (for current user)
 			users.POST("/interests", middlewares.AuthMiddleware(cfg.JWT.Secret), userActionHandler.SetInterests)
 			users.GET("/interests", middlewares.AuthMiddleware(cfg.JWT.Secret), userActionHandler.GetInterests)
+			// Bookmarked articles
+			users.GET("/bookmarks", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.GetBookmarkedArticles)
 		}
 
 		// Article routes
@@ -213,12 +223,24 @@ func main() {
 			articles.GET("/:slug", middlewares.OptionalAuthMiddleware(cfg.JWT.Secret), articleHandler.GetArticle)
 			articles.GET("/:slug/related", articleHandler.GetRelatedArticles)
 
-			// Protected routes
+			// Engagement routes (likes, bookmarks, comments)
+			articles.POST("/:slug/like", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.LikeArticle)
+			articles.DELETE("/:slug/like", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.UnlikeArticle)
+			articles.GET("/:slug/like", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.GetLikeStatus)
+			articles.POST("/:slug/bookmark", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.BookmarkArticle)
+			articles.DELETE("/:slug/bookmark", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.UnbookmarkArticle)
+			articles.GET("/:slug/comments", engagementHandler.GetComments)
+			articles.POST("/:slug/comments", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.CreateComment)
+			articles.PUT("/:slug/comments/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.UpdateComment)
+			articles.DELETE("/:slug/comments/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.DeleteComment)
+
+			// Protected routes (use :slug param name to match Gin's requirement for
+			// consistent wildcard names; the value is still a UUID for these routes)
 			articles.POST("", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireAuthor(), articleHandler.CreateArticle)
-			articles.PUT("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireAuthor(), articleHandler.UpdateArticle)
-			articles.DELETE("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireAuthor(), articleHandler.DeleteArticle)
-			articles.PATCH("/:id/publish", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), articleHandler.PublishArticle)
-			articles.PATCH("/:id/unpublish", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), articleHandler.UnpublishArticle)
+			articles.PUT("/:slug", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireAuthor(), articleHandler.UpdateArticle)
+			articles.DELETE("/:slug", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireAuthor(), articleHandler.DeleteArticle)
+			articles.PATCH("/:slug/publish", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), articleHandler.PublishArticle)
+			articles.PATCH("/:slug/unpublish", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), articleHandler.UnpublishArticle)
 		}
 
 		// Category routes
@@ -228,8 +250,8 @@ func main() {
 			categories.GET("/:slug", categoryHandler.GetCategory)
 			categories.GET("/:slug/articles", categoryHandler.GetCategoryArticles)
 			categories.POST("", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), categoryHandler.CreateCategory)
-			categories.PUT("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), categoryHandler.UpdateCategory)
-			categories.DELETE("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), categoryHandler.DeleteCategory)
+			categories.PUT("/:slug", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), categoryHandler.UpdateCategory)
+			categories.DELETE("/:slug", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), categoryHandler.DeleteCategory)
 		}
 
 		// Tag routes
@@ -240,8 +262,8 @@ func main() {
 			tags.GET("/:slug", tagHandler.GetTag)
 			tags.GET("/:slug/articles", tagHandler.GetTagArticles)
 			tags.POST("", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), tagHandler.CreateTag)
-			tags.PUT("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), tagHandler.UpdateTag)
-			tags.DELETE("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), tagHandler.DeleteTag)
+			tags.PUT("/:slug", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), tagHandler.UpdateTag)
+			tags.DELETE("/:slug", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireEditor(), tagHandler.DeleteTag)
 		}
 
 		// Media routes (with upload rate limiting to prevent abuse)
@@ -251,6 +273,15 @@ func main() {
 			media.GET("/:id", mediaHandler.GetMedia)
 			media.GET("", middlewares.AuthMiddleware(cfg.JWT.Secret), middlewares.RequireAdmin(), mediaHandler.GetAllMedia)
 			media.DELETE("/:id", middlewares.AuthMiddleware(cfg.JWT.Secret), mediaHandler.DeleteMedia)
+		}
+
+		// Notification routes
+		notifications := v1.Group("/notifications")
+		{
+			notifications.GET("", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.GetNotifications)
+			notifications.GET("/unread-count", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.GetUnreadCount)
+			notifications.PUT("/:id/read", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.MarkNotificationAsRead)
+			notifications.PUT("/read-all", middlewares.AuthMiddleware(cfg.JWT.Secret), engagementHandler.MarkAllNotificationsAsRead)
 		}
 
 		// Search route (with search rate limiting)

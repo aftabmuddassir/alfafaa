@@ -650,6 +650,14 @@ golangci-lint run
 25. ✅ Google OAuth Authentication (stub implementation)
 26. ✅ User Profile with social stats (follower/following counts)
 
+**Phase 5 - Engagement Features (Completed)**
+27. ✅ Likes (like/unlike articles, idempotent)
+28. ✅ Bookmarks (bookmark/unbookmark articles, idempotent)
+29. ✅ Comments (create, update, delete, nested replies)
+30. ✅ Notifications (like, comment, follow, publish events)
+31. ✅ Article engagement enrichment (likes_count, comments_count, user_liked, user_bookmarked on GET /articles/:slug)
+32. ✅ Notification side effects (auto-create on like, comment, follow, publish)
+
 ## Medium.com Style Features Documentation
 
 ### Social Graph (User Following)
@@ -773,6 +781,151 @@ Tests added for:
 - Staff picks
 - User profile retrieval
 
+## Engagement Features Documentation
+
+### Likes API
+
+**New Model:** `internal/models/like.go`
+- `likes` table with UNIQUE(user_id, article_id) constraint
+
+**Endpoints:**
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/v1/articles/:slug/like` | Required | Like an article (idempotent) |
+| DELETE | `/api/v1/articles/:slug/like` | Required | Unlike an article |
+| GET | `/api/v1/articles/:slug/like` | Required | Get current user's like status |
+
+**Response Data:**
+```json
+{ "liked": true, "likes_count": 42 }
+```
+
+### Bookmarks API
+
+**New Model:** `internal/models/bookmark.go`
+- `bookmarks` table with UNIQUE(user_id, article_id) constraint
+
+**Endpoints:**
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/v1/articles/:slug/bookmark` | Required | Bookmark an article (idempotent) |
+| DELETE | `/api/v1/articles/:slug/bookmark` | Required | Remove bookmark |
+| GET | `/api/v1/users/bookmarks` | Required | Get bookmarked articles (paginated) |
+
+**Response Data (bookmark):**
+```json
+{ "bookmarked": true }
+```
+
+### Comments API (Engagement-Aware)
+
+**Model Updated:** `internal/models/comment.go` - Added `likes_count` field
+
+**Endpoints:**
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/articles/:slug/comments` | Public | Get comments with nested replies (paginated) |
+| POST | `/api/v1/articles/:slug/comments` | Required | Create a comment (optionally as reply) |
+| PUT | `/api/v1/articles/:slug/comments/:id` | Required | Update a comment (owner only) |
+| DELETE | `/api/v1/articles/:slug/comments/:id` | Required | Delete a comment (owner or admin) |
+
+**Request Body (Create):**
+```json
+{ "content": "Great article!", "parent_id": "uuid-or-omitted" }
+```
+
+**Response Data:**
+```json
+{
+  "id": "uuid",
+  "article_id": "uuid",
+  "user": { "id": "uuid", "username": "...", "first_name": "...", "last_name": "...", "bio": "...", "profile_image_url": "..." },
+  "content": "Great article!",
+  "parent_id": null,
+  "replies": [],
+  "likes_count": 0,
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+### Notifications API
+
+**New Model:** `internal/models/notification.go`
+- Types: `like`, `comment`, `follow`, `article`
+
+**Endpoints:**
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/notifications` | Required | Get notifications (paginated, newest first) |
+| GET | `/api/v1/notifications/unread-count` | Required | Get unread notification count |
+| PUT | `/api/v1/notifications/:id/read` | Required | Mark single notification as read |
+| PUT | `/api/v1/notifications/read-all` | Required | Mark all notifications as read |
+
+**Response Data (notification):**
+```json
+{
+  "id": "uuid",
+  "type": "like",
+  "message": "John Doe liked your article",
+  "actor": { "id": "uuid", "username": "...", ... },
+  "article": { "id": "uuid", "slug": "...", "title": "..." },
+  "read": false,
+  "created_at": "..."
+}
+```
+
+### Article Engagement Enrichment
+
+`GET /api/v1/articles/:slug` now includes 4 additional fields:
+```json
+{
+  "...existing fields...",
+  "likes_count": 42,
+  "comments_count": 7,
+  "user_liked": true,
+  "user_bookmarked": false
+}
+```
+- `user_liked` and `user_bookmarked` are determined by the authenticated user (if auth header present)
+
+### Notification Side Effects
+
+Notifications are automatically created for:
+| Event | Type | Message Template | article field |
+|-------|------|------------------|---------------|
+| User likes an article | `like` | "{actor_name} liked your article" | Yes |
+| User comments on an article | `comment` | "{actor_name} commented on your article" | Yes |
+| User follows another user | `follow` | "{actor_name} started following you" | No |
+| User publishes a new article | `article` | "{actor_name} published a new article" | Yes |
+
+- Notifications are NOT created when actor == recipient (e.g., liking your own article)
+
+### New Files Created
+
+- `internal/models/like.go` - Like model
+- `internal/models/bookmark.go` - Bookmark model
+- `internal/models/notification.go` - Notification model
+- `internal/dto/engagement_dto.go` - DTOs for likes, bookmarks, notifications, comments
+- `internal/repositories/engagement_repository.go` - Data access for likes, bookmarks, notifications
+- `internal/services/engagement_service.go` - Business logic for all engagement features
+- `internal/handlers/engagement_handler.go` - HTTP handlers for engagement endpoints
+
+### Database Migrations (Engagement)
+
+Run migrations to add new tables:
+```bash
+go run cmd/server/main.go -migrate
+```
+
+**New Tables:**
+- `likes` (id, user_id, article_id, created_at) + UNIQUE(user_id, article_id)
+- `bookmarks` (id, user_id, article_id, created_at) + UNIQUE(user_id, article_id)
+- `notifications` (id, user_id, actor_id, type, message, article_id, read, created_at)
+
+**Columns Added:**
+- `comments.likes_count` (INT, default: 0)
+
 ## Resources & Documentation
 - [Gin Documentation](https://gin-gonic.com/docs/)
 - [GORM Documentation](https://gorm.io/docs/)
@@ -821,4 +974,4 @@ GOOGLE_REDIRECT_URLS=http://localhost:5173,http://localhost:3000
 
 ---
 
-**Remember**: This is a production system serving a Muslim community. Code quality, security, and reliability are paramount. When in doubt, prioritize correctness over speed.
+**Remember**: This is a production system serving a community. Code quality, security, and reliability are paramount. When in doubt, prioritize correctness over speed.

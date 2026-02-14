@@ -15,6 +15,7 @@ type Comment struct {
 	ParentID   *uuid.UUID     `gorm:"type:uuid;index" json:"parent_id"`
 	Content    string         `gorm:"type:text;not null" json:"content"`
 	IsApproved bool           `gorm:"default:false;index" json:"is_approved"`
+	LikesCount int            `gorm:"default:0" json:"likes_count"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`

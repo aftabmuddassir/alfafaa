@@ -72,6 +72,10 @@ type ArticleDetailResponse struct {
 	PublishedAt        *time.Time         `json:"published_at"`
 	ViewCount          int                `json:"view_count"`
 	ReadingTimeMinutes int                `json:"reading_time_minutes"`
+	LikesCount         int                `json:"likes_count"`
+	CommentsCount      int                `json:"comments_count"`
+	UserLiked          bool               `json:"user_liked"`
+	UserBookmarked     bool               `json:"user_bookmarked"`
 	MetaTitle          string             `json:"meta_title"`
 	MetaDescription    string             `json:"meta_description"`
 	MetaKeywords       string             `json:"meta_keywords"`

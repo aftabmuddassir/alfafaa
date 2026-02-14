@@ -128,7 +128,7 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 // @Failure 404 {object} utils.Response "Category not found"
 // @Router /categories/{id} [put]
 func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("slug") // Gin requires consistent param names; value is a UUID
 	if id == "" {
 		utils.ErrorResponseJSON(c, http.StatusBadRequest, "INVALID_ID", "Category ID is required", nil)
 		return
@@ -163,7 +163,7 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 // @Failure 404 {object} utils.Response "Category not found"
 // @Router /categories/{id} [delete]
 func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("slug") // Gin requires consistent param names; value is a UUID
 	if id == "" {
 		utils.ErrorResponseJSON(c, http.StatusBadRequest, "INVALID_ID", "Category ID is required", nil)
 		return

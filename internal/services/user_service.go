@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/alfafaa/alfafaa-blog/internal/dto"
 	"github.com/alfafaa/alfafaa-blog/internal/models"
@@ -34,16 +35,21 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepo    repositories.UserRepository
-	articleRepo repositories.ArticleRepository
+	userRepo       repositories.UserRepository
+	articleRepo    repositories.ArticleRepository
+	engagementRepo repositories.EngagementRepository
 }
 
 // NewUserService creates a new user service
-func NewUserService(userRepo repositories.UserRepository, articleRepo repositories.ArticleRepository) UserService {
-	return &userService{
+func NewUserService(userRepo repositories.UserRepository, articleRepo repositories.ArticleRepository, engagementRepo ...repositories.EngagementRepository) UserService {
+	svc := &userService{
 		userRepo:    userRepo,
 		articleRepo: articleRepo,
 	}
+	if len(engagementRepo) > 0 {
+		svc.engagementRepo = engagementRepo[0]
+	}
+	return svc
 }
 
 // GetUser retrieves a user by ID
@@ -427,6 +433,21 @@ func (s *userService) FollowUser(followerID, followingID string) (*dto.FollowRes
 	// Create follow relationship
 	if err := s.userRepo.FollowUser(followerUUID, followingUUID); err != nil {
 		return nil, utils.WrapError(err, "failed to follow user")
+	}
+
+	// Create follow notification
+	if s.engagementRepo != nil {
+		follower, _ := s.userRepo.FindByID(followerUUID)
+		if follower != nil {
+			actorName := follower.GetFullName()
+			notification := &models.Notification{
+				UserID:  followingUUID,
+				ActorID: followerUUID,
+				Type:    models.NotificationTypeFollow,
+				Message: fmt.Sprintf("%s started following you", actorName),
+			}
+			_ = s.engagementRepo.CreateNotification(notification)
+		}
 	}
 
 	return &dto.FollowResponse{IsFollowing: true}, nil

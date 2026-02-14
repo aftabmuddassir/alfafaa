@@ -9,17 +9,20 @@ import (
 	"github.com/alfafaa/alfafaa-blog/internal/services"
 	"github.com/alfafaa/alfafaa-blog/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // ArticleHandler handles article-related HTTP requests
 type ArticleHandler struct {
-	articleService services.ArticleService
+	articleService    services.ArticleService
+	engagementService services.EngagementService
 }
 
 // NewArticleHandler creates a new article handler
-func NewArticleHandler(articleService services.ArticleService) *ArticleHandler {
+func NewArticleHandler(articleService services.ArticleService, engagementService services.EngagementService) *ArticleHandler {
 	return &ArticleHandler{
-		articleService: articleService,
+		articleService:    articleService,
+		engagementService: engagementService,
 	}
 }
 
@@ -82,6 +85,19 @@ func (h *ArticleHandler) GetArticle(c *gin.Context) {
 		return
 	}
 
+	// Enrich with engagement data
+	if h.engagementService != nil {
+		articleUUID, parseErr := uuid.Parse(article.ID)
+		if parseErr == nil {
+			userID := middlewares.GetUserID(c)
+			likesCount, commentsCount, userLiked, userBookmarked := h.engagementService.GetArticleEngagement(articleUUID, userID)
+			article.LikesCount = likesCount
+			article.CommentsCount = commentsCount
+			article.UserLiked = userLiked
+			article.UserBookmarked = userBookmarked
+		}
+	}
+
 	utils.SuccessResponse(c, http.StatusOK, "Article retrieved successfully", article)
 }
 
@@ -132,7 +148,7 @@ func (h *ArticleHandler) CreateArticle(c *gin.Context) {
 // @Failure 404 {object} utils.Response "Article not found"
 // @Router /articles/{id} [put]
 func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("slug") // Gin requires consistent param names; value is a UUID
 	if id == "" {
 		utils.ErrorResponseJSON(c, http.StatusBadRequest, "INVALID_ID", "Article ID is required", nil)
 		return
@@ -170,7 +186,7 @@ func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
 // @Failure 404 {object} utils.Response "Article not found"
 // @Router /articles/{id} [delete]
 func (h *ArticleHandler) DeleteArticle(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("slug") // Gin requires consistent param names; value is a UUID
 	if id == "" {
 		utils.ErrorResponseJSON(c, http.StatusBadRequest, "INVALID_ID", "Article ID is required", nil)
 		return
@@ -201,7 +217,7 @@ func (h *ArticleHandler) DeleteArticle(c *gin.Context) {
 // @Failure 404 {object} utils.Response "Article not found"
 // @Router /articles/{id}/publish [patch]
 func (h *ArticleHandler) PublishArticle(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("slug") // Gin requires consistent param names; value is a UUID
 	if id == "" {
 		utils.ErrorResponseJSON(c, http.StatusBadRequest, "INVALID_ID", "Article ID is required", nil)
 		return
@@ -230,7 +246,7 @@ func (h *ArticleHandler) PublishArticle(c *gin.Context) {
 // @Failure 404 {object} utils.Response "Article not found"
 // @Router /articles/{id}/unpublish [patch]
 func (h *ArticleHandler) UnpublishArticle(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("slug") // Gin requires consistent param names; value is a UUID
 	if id == "" {
 		utils.ErrorResponseJSON(c, http.StatusBadRequest, "INVALID_ID", "Article ID is required", nil)
 		return
