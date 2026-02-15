@@ -85,7 +85,6 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 		// c.Next()
 	}
 
-
 }
 
 // SecurityHeadersConfig allows customizing security headers
@@ -109,10 +108,10 @@ type SecurityHeadersConfig struct {
 // DefaultSecurityHeadersConfig returns default security headers configuration
 func DefaultSecurityHeadersConfig() SecurityHeadersConfig {
 	return SecurityHeadersConfig{
-		FrameOptions:       "DENY",
+		FrameOptions:       "ALLOW",
 		ContentTypeNosniff: true,
 		XSSProtection:      true,
-		ReferrerPolicy:     "strict-origin-when-cross-origin",
+		// ReferrerPolicy:     "strict-origin-when-cross-origin",
 		CSP: "default-src 'self'; " +
 			"script-src 'self' 'unsafe-inline'; " +
 			"style-src 'self' 'unsafe-inline'; " +
