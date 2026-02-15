@@ -1,33 +1,72 @@
-version: '3.8'
+# =============================================================
+# docker-compose.yml — Production setup for Hetzner Cloud
+# =============================================================
+# Reads all config from .env file (automatically loaded by
+# docker-compose from the same directory).
+#
+# Usage:
+#   Production:  docker compose up -d          (uses .env)
+#   Local:       docker compose --env-file .env.local up
+# =============================================================
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: alfafaa_blog_db
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
-      POSTGRES_DB: ${POSTGRES_DB:-alfafaa_blog}
-    ports:
-      - "${POSTGRES_PORT:-5433}:5432"
-    volumes:
-      - alfafaa_blog_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: alfafaa_blog_pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@alfafaa.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+    container_name: alfafaa-blog-api
+
     ports:
-      - "${PGADMIN_PORT:-5051}:80"
-    depends_on:
-      - postgres
+      - "${SERVER_PORT:-8081}:${SERVER_PORT:-8081}"
+
+    # All values come from .env — no secrets hardcoded here
+    environment:
+      # Server
+      SERVER_PORT: ${SERVER_PORT}
+      SERVER_HOST: ${SERVER_HOST}
+      GIN_MODE: ${GIN_MODE}
+
+      # Database (Neon in production, local PG in dev)
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSLMODE: ${DB_SSLMODE}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
+
+      # Uploads
+      UPLOAD_MAX_SIZE: ${UPLOAD_MAX_SIZE}
+      UPLOAD_PATH: /app/uploads
+
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+
+      # Security
+      ENABLE_RATE_LIMIT: ${ENABLE_RATE_LIMIT:-true}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1}
+
+      # Google OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URLS: ${GOOGLE_REDIRECT_URLS:-}
+
+    volumes:
+      - uploads_data:/app/uploads
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVER_PORT:-8081}/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
 volumes:
-  alfafaa_blog_data:
+  uploads_data:

@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment files (secrets — NEVER bake into image)
+.env
+.env.*
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Local docker files
+docker-localpg.yml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+*_test.go
+mocks/
+
+# Local uploads (will use a Docker volume instead)
+uploads/
+
+# Build artifacts
+bin/
+tmp/
+
+# Checkpoints
+checkpoints/

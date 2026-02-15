@@ -80,8 +80,17 @@ type SecurityConfig struct {
 
 // LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
-	// Load .env file if it exists
-	if err := godotenv.Load(); err != nil {
+	// Check ENV_FILE to support multiple environments:
+	//   Local dev:  ENV_FILE=.env.local go run cmd/server/main.go
+	//   Production: uses .env by default (or env vars set by Docker)
+	envFile := os.Getenv("ENV_FILE")
+	if envFile != "" {
+		if err := godotenv.Load(envFile); err != nil {
+			log.Printf("Warning: could not load %s: %v\n", envFile, err)
+		} else {
+			log.Printf("Loaded config from %s\n", envFile)
+		}
+	} else if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
 
