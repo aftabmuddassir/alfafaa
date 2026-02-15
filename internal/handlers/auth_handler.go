@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/alfafaa/alfafaa-blog/internal/dto"
@@ -209,8 +210,10 @@ func (h *AuthHandler) GoogleAuth(c *gin.Context) {
 		return
 	}
 
+	responseJSON, _ := json.Marshal(response)
 	utils.Info("GoogleAuth handler: success, sending 200 response",
 		zap.String("user_email", response.User.Email),
+		zap.String("response_body", string(responseJSON)),
 	)
 
 	utils.SuccessResponse(c, http.StatusOK, "Authentication successful", response)

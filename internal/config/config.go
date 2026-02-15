@@ -87,7 +87,7 @@ func LoadConfig() (*Config, error) {
 
 	return &Config{
 		Server: ServerConfig{
-			Port: getEnv("SERVER_PORT", "8080"),
+			Port: getServerPort(),
 			Host: getEnv("SERVER_HOST", "localhost"),
 			Mode: getEnv("GIN_MODE", "debug"),
 		},
@@ -127,6 +127,15 @@ func LoadConfig() (*Config, error) {
 			RedirectURLs: parseSlice(getEnv("GOOGLE_REDIRECT_URLS", "http://localhost:5173,http://localhost:3000")),
 		},
 	}, nil
+}
+
+// getServerPort returns the port the server should listen on.
+// Checks PORT first (set automatically by Render, Railway, Heroku, etc.), then SERVER_PORT, then defaults to 8081.
+func getServerPort() string {
+	if port, exists := os.LookupEnv("PORT"); exists {
+		return port
+	}
+	return getEnv("SERVER_PORT", "8081")
 }
 
 // getEnv returns the value of an environment variable or a default value
