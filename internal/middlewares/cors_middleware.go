@@ -68,7 +68,10 @@ func CORSMiddleware(config CORSConfig) gin.HandlerFunc {
 			}
 		}
 
-		if allowedOrigin == "" {
+		if allowedOrigin == "" && origin != "" {
+			// Only warn when a browser sends an Origin that's not in the allowlist.
+			// Requests with no Origin header (curl, healthchecks, server-to-server)
+			// are not cross-origin — no need to log them.
 			utils.Warn("CORS: origin not allowed",
 				zap.String("origin", origin),
 				zap.Strings("allowed", config.AllowedOrigins),
