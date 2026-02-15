@@ -64,25 +64,7 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 	// }
 
 	return func(c *gin.Context) {
-		// // 1. Strict Transport Security (HTTPS only)
-		// // Tells the browser "Always talk to me over HTTPS"
-		// if c.Request.TLS != nil {
-		// 	c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
-		// }
-
-		// // 2. Referrer Policy
-		// // Controls how much info is sent when linking to other sites
-		// c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
-
-		// // 3. Content Type Options
-		// // Prevents the browser from "guessing" the file type (security best practice)
-		// c.Header("X-Content-Type-Options", "nosniff")
-
-		// // REMOVED: Content-Security-Policy (Not needed for JSON API)
-		// // REMOVED: X-Frame-Options (Not needed for JSON API)
-		// // REMOVED: X-XSS-Protection (Not needed for JSON API)
-
-		// c.Next()
+		c.Next()
 	}
 
 }
