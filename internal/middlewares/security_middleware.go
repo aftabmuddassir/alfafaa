@@ -1,6 +1,8 @@
 package middlewares
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -132,7 +134,7 @@ func SecurityHeadersWithConfig(config SecurityHeadersConfig) gin.HandlerFunc {
 
 		if c.Request.TLS != nil && config.HSTSMaxAge > 0 {
 			c.Header("Strict-Transport-Security",
-				"max-age="+string(rune(config.HSTSMaxAge))+"; includeSubDomains; preload")
+				"max-age="+strconv.Itoa(config.HSTSMaxAge)+"; includeSubDomains; preload")
 		}
 
 		if config.PermissionsPolicy != "" {

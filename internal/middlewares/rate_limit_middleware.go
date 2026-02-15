@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -110,7 +111,7 @@ func RateLimitMiddleware(limiter *RateLimiter) gin.HandlerFunc {
 		}
 
 		// Set rate limit headers
-		c.Header("X-RateLimit-Remaining", string(rune(limiter.GetRemaining(key))))
+		c.Header("X-RateLimit-Remaining", strconv.Itoa(limiter.GetRemaining(key)))
 
 		c.Next()
 	}

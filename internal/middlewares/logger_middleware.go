@@ -72,11 +72,14 @@ func LoggerMiddleware() gin.HandlerFunc {
 		// Log errors if any
 		if len(c.Errors) > 0 && utils.Logger != nil {
 			for _, err := range c.Errors {
-				utils.Logger.Error("Request error",
+				fields := []zap.Field{
 					zap.String("request_id", requestID),
 					zap.Error(err.Err),
-					zap.String("meta", err.Meta.(string)),
-				)
+				}
+				if meta, ok := err.Meta.(string); ok {
+					fields = append(fields, zap.String("meta", meta))
+				}
+				utils.Logger.Error("Request error", fields...)
 			}
 		}
 	}
