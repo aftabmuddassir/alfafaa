@@ -12,9 +12,8 @@
 .env
 .env.*
 
-# Documentation
+# Documentation (keep docs/ — for generated docs)
 *.md
-docs/
 LICENSE
 
 # Local docker files
