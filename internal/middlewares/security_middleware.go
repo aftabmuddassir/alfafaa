@@ -6,62 +6,86 @@ import (
 
 // SecurityHeadersMiddleware adds security headers to all responses
 func SecurityHeadersMiddleware() gin.HandlerFunc {
+	// return func(c *gin.Context) {
+	// 	// Prevent clickjacking attacks
+	// 	// Denies rendering the page in a frame/iframe
+	// 	c.Header("X-Frame-Options", "SAMEORIGIN")
+
+	// 	// Prevent MIME type sniffing
+	// 	// Forces browser to respect Content-Type header
+	// 	c.Header("X-Content-Type-Options", "nosniff")
+
+	// 	// Enable XSS protection in older browsers
+	// 	// Modern browsers use CSP instead
+	// 	c.Header("X-XSS-Protection", "1; mode=block")
+
+	// 	// Control referrer information
+	// 	// Only send origin for cross-origin requests
+	// 	//c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+
+	// 	// Content Security Policy
+	// 	// Restricts resource loading to prevent XSS
+	// 	// Note: This is a basic API CSP, adjust for frontend needs
+	// 	c.Header("Content-Security-Policy",
+	// 		"default-src 'self'; "+
+	// 			"script-src 'self' 'unsafe-inline'; "+
+	// 			"style-src 'self' 'unsafe-inline'; "+
+	// 			"img-src 'self' data: https:; "+
+	// 			"font-src 'self'; "+
+	// 			"connect-src '*'; "+
+	// 			"frame-ancestors 'none'")
+
+	// 	// Strict Transport Security (HTTPS only)
+	// 	// Force HTTPS for 1 year, including subdomains
+	// 	// Only set when using TLS
+	// 	if c.Request.TLS != nil {
+	// 		c.Header("Strict-Transport-Security",
+	// 			"max-age=31536000; includeSubDomains; preload")
+	// 	}
+
+	// 	// Permissions Policy (formerly Feature Policy)
+	// 	// Disable unused browser features
+	// 	c.Header("Permissions-Policy",
+	// 		"geolocation=(), "+
+	// 			"microphone=(), "+
+	// 			"camera=(), "+
+	// 			"payment=(), "+
+	// 			"usb=(), "+
+	// 			"magnetometer=(), "+
+	// 			"gyroscope=()")
+
+	// 	// Cache Control for API responses
+	// 	// Prevent caching of sensitive data
+	// 	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+	// 	c.Header("Pragma", "no-cache")
+	// 	c.Header("Expires", "0")
+
+	// 	c.Next()
+	// }
+
 	return func(c *gin.Context) {
-		// Prevent clickjacking attacks
-		// Denies rendering the page in a frame/iframe
-		c.Header("X-Frame-Options", "SAMEORIGIN")
-
-		// Prevent MIME type sniffing
-		// Forces browser to respect Content-Type header
-		c.Header("X-Content-Type-Options", "nosniff")
-
-		// Enable XSS protection in older browsers
-		// Modern browsers use CSP instead
-		c.Header("X-XSS-Protection", "1; mode=block")
-
-		// Control referrer information
-		// Only send origin for cross-origin requests
-		//c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
-
-		// Content Security Policy
-		// Restricts resource loading to prevent XSS
-		// Note: This is a basic API CSP, adjust for frontend needs
-		c.Header("Content-Security-Policy",
-			"default-src 'self'; "+
-				"script-src 'self' 'unsafe-inline'; "+
-				"style-src 'self' 'unsafe-inline'; "+
-				"img-src 'self' data: https:; "+
-				"font-src 'self'; "+
-				"connect-src '*'; "+
-				"frame-ancestors 'none'")
-
-		// Strict Transport Security (HTTPS only)
-		// Force HTTPS for 1 year, including subdomains
-		// Only set when using TLS
+		// 1. Strict Transport Security (HTTPS only)
+		// Tells the browser "Always talk to me over HTTPS"
 		if c.Request.TLS != nil {
-			c.Header("Strict-Transport-Security",
-				"max-age=31536000; includeSubDomains; preload")
+			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 		}
 
-		// Permissions Policy (formerly Feature Policy)
-		// Disable unused browser features
-		c.Header("Permissions-Policy",
-			"geolocation=(), "+
-				"microphone=(), "+
-				"camera=(), "+
-				"payment=(), "+
-				"usb=(), "+
-				"magnetometer=(), "+
-				"gyroscope=()")
+		// 2. Referrer Policy
+		// Controls how much info is sent when linking to other sites
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 
-		// Cache Control for API responses
-		// Prevent caching of sensitive data
-		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
-		c.Header("Pragma", "no-cache")
-		c.Header("Expires", "0")
+		// 3. Content Type Options
+		// Prevents the browser from "guessing" the file type (security best practice)
+		c.Header("X-Content-Type-Options", "nosniff")
+
+		// REMOVED: Content-Security-Policy (Not needed for JSON API)
+		// REMOVED: X-Frame-Options (Not needed for JSON API)
+		// REMOVED: X-XSS-Protection (Not needed for JSON API)
 
 		c.Next()
 	}
+
+
 }
 
 // SecurityHeadersConfig allows customizing security headers
