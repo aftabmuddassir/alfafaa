@@ -109,7 +109,7 @@ func LoadConfig() (*Config, error) {
 			Path:    getEnv("UPLOAD_PATH", "./uploads"),
 		},
 		CORS: CORSConfig{
-			AllowedOrigins: parseSlice(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")),
+			AllowedOrigins: parseSlice(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,https://blog-alfafaa.netlify.app")),
 		},
 		RateLimit: RateLimitConfig{
 			Requests: parseInt(getEnv("RATE_LIMIT_REQUESTS", "100")),

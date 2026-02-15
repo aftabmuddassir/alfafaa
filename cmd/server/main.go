@@ -118,7 +118,6 @@ func main() {
 	searchService := services.NewSearchService(articleRepo, categoryRepo, tagRepo)
 	engagementService := services.NewEngagementService(engagementRepo, articleRepo, commentRepo, userRepo)
 
-
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -147,6 +146,7 @@ func main() {
 
 	// 3. Logger - Log all requests with context
 	router.Use(middlewares.LoggerMiddleware())
+	log.Println("Model: ", cfg.Server.Mode, "CORS Allowed Origins: ", cfg.CORS.AllowedOrigins)
 
 	// 4. CORS - Must run BEFORE security headers so preflight OPTIONS gets proper response
 	if cfg.Server.Mode == "release" || cfg.Server.Mode == "production" {
